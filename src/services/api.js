@@ -3,7 +3,14 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 const POLLINATIONS_BASE = 'https://pollinations.ai/p/';
-const TTS_VOICE = 'en-US-Male-1'; // Константа голоса (Pollinations поддерживают разные голоса)
+
+// Available voices mapping
+export const VOICE_OPTIONS = [
+  { id: 'ru-RU-Male-1', label: 'Пушкин (RU)', lang: 'ru' },
+  { id: 'ru-RU-Female-1', label: 'Алина (RU)', lang: 'ru' },
+  { id: 'en-US-Male-1', label: 'George (EN)', lang: 'en' },
+  { id: 'en-US-Female-1', label: 'Alice (EN)', lang: 'en' },
+];
 
 /**
  * Generates an image URL from Pollinations.ai
@@ -16,10 +23,62 @@ export const generateImage = (prompt) => {
 /**
  * Generates a TTS audio URL
  */
-export const generateTTS = (text) => {
+export const generateTTS = (text, voiceId = 'ru-RU-Male-1') => {
   const encodedText = encodeURIComponent(text);
-  // Используем бесплатный TTS эндпоинт от Pollinations
-  return `https://text-to-speech-api.pollinations.ai/tts?text=${encodedText}&voice=${TTS_VOICE}`;
+  return `https://text-to-speech-api.pollinations.ai/tts?text=${encodedText}&voice=${voiceId}`;
+};
+
+/**
+ * Generates a scenario (scenes) from an idea using DeepSeek-V3
+ */
+export const generateScenario = async (idea, style, personCount, apiKey) => {
+  if (!apiKey) throw new Error('API Key missing');
+
+  const systemPrompt = `You are a cinematic screenwriter. 
+Generate a JSON array of 5 scenes for a video based on the user's idea and style.
+Style: ${style}
+Number of people in frame: ${personCount}
+
+Output ONLY a JSON array with this structure:
+[
+  {
+    "image_prompt": "Detailed visual description for image generation (English)",
+    "voice_text": "Narration text for this scene (Russian)",
+    "scene_name": "Short scene title"
+  }
+]
+Keep image_prompts in English for better AI performance. Keep voice_text in Russian.
+Translate the visual style '${style}' into architectural and lighting details.`;
+
+  try {
+    const response = await axios.post(
+      'https://api.siliconflow.cn/v1/chat/completions',
+      {
+        model: 'deepseek-ai/DeepSeek-V3',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Idea: ${idea}` }
+        ],
+        response_format: { type: 'json_object' }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    // DeepSeek might return a nested object if we asked for json_object, 
+    // or just the string if we asked for a list. Let's handle the string parsing.
+    const content = response.data.choices[0].message.content;
+    const scenes = JSON.parse(content);
+    // If it's wrapped in an object like { "scenes": [...] }
+    return Array.isArray(scenes) ? scenes : (scenes.scenes || []);
+  } catch (error) {
+    console.error('Scenario Generation Error:', error);
+    throw error;
+  }
 };
 
 /**

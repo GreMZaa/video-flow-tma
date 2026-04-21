@@ -4,7 +4,7 @@ import RightPanel from './components/RightPanel';
 import MainGrid from './components/MainGrid';
 import SettingsModal from './components/SettingsModal';
 import { Settings, Share2, Crown, Layers, Search, Menu, Sparkles } from 'lucide-react';
-import { generateImage, generateVideoSegment } from './services/api';
+import { generateImage, generateVideoSegment, generateScenario, generateTTS, VOICE_OPTIONS, stitchVideos } from './services/api';
 
 function App() {
   const { tg, showHaptic, showAlert } = useTelegram();
@@ -29,6 +29,13 @@ function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false); // Mobile drawer state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeVideo, setActiveVideo] = useState(null); // For preview
+  
+  // Pipeline Settings
+  const [projectMode, setProjectMode] = useState('workflow'); // 'quick' or 'workflow'
+  const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
+  const [personCount, setPersonCount] = useState('1');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
   // Responsiveness
   useEffect(() => {
@@ -50,58 +57,107 @@ function App() {
     localStorage.setItem('SILICON_FLOW_KEY', apiKey);
   }, [apiKey]);
 
-  const handleCreate = async () => {
+  const handleCreateScenario = async () => {
     if (!apiKey) {
-      showAlert('Введите API ключ в настройках');
+      showAlert('Введите API ключ');
       setIsSettingsOpen(true);
       return;
     }
-    
+    if (!actionPrompt) return;
+
     setIsLoading(true);
     showHaptic('medium');
     
     try {
-      const fullPrompt = `${characterPrompt}, ${actionPrompt}`;
-      const imageUrl = generateImage(fullPrompt);
+      const scenes = await generateScenario(actionPrompt, characterPrompt, personCount, apiKey);
       
-      // Simulate/Trigger generation
-      // In a real app, this would be a chain or a separate item in the grid that updates
-      const newGenId = Date.now();
-      const newGeneration = {
-        id: newGenId,
-        prompt: actionPrompt,
+      const newScenes = scenes.map((s, idx) => ({
+        id: Date.now() + idx,
+        prompt: s.image_prompt,
+        voiceText: s.voice_text,
+        sceneName: s.scene_name || `Сцена ${idx + 1}`,
         style: characterPrompt,
-        imageUrl: imageUrl,
-        aspectRatio: aspectRatio,
-        status: 'generating'
-      };
+        status: 'draft',
+        aspectRatio: aspectRatio
+      }));
       
-      setGenerations([newGeneration, ...generations]);
-      
-      // Close mobile panel on success
-      if (isMobile) setIsPanelOpen(false);
-
-      // Trigger video generation logic
-      await generateVideoSegment(imageUrl, actionPrompt, apiKey);
-      
-      // Mock update to "done"
-      setTimeout(() => {
-        setGenerations(prev => prev.map(g => g.id === newGenId ? {
-          ...g,
-          videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-          status: 'ready'
-        } : g));
-        showHaptic('success');
-      }, 5000);
-
+      setGenerations([...newScenes, ...generations]);
       setActionPrompt('');
+      if (isMobile) setIsPanelOpen(false);
     } catch (err) {
-      showAlert('Ошибка генерации');
-      console.error(err);
+      showAlert('Ошибка создания сценария');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleAutomateProject = async () => {
+    const drafts = generations.filter(g => g.status === 'draft');
+    if (drafts.length === 0) return;
+
+    setIsLoading(true);
+    for (const item of drafts) {
+      try {
+        // 1. Set to generating
+        setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, status: 'generating' } : g));
+        
+        // 2. Generate Assets
+        const imageUrl = generateImage(`${item.style}, ${item.prompt}`);
+        const audioUrl = generateTTS(item.voiceText, selectedVoice);
+        
+        setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, imageUrl, audioUrl } : g));
+
+        // 3. Generate Video
+        await generateVideoSegment(imageUrl, item.prompt, apiKey);
+        
+        // 4. Update to ready
+        setGenerations(prev => prev.map(g => g.id === item.id ? { 
+          ...g, 
+          videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', 
+          status: 'ready' 
+        } : g));
+      } catch (err) {
+        console.error('Automation error for', item.id, err);
+      }
+    }
+    setIsLoading(false);
+    showHaptic('success');
+  };
+
+  const handleExportProject = async () => {
+    const readyVideos = generations
+      .filter(g => g.videoUrl && g.status === 'ready')
+      .reverse() // Keep original order if generations are unshifted
+      .map(g => g.videoUrl);
+
+    if (readyVideos.length === 0) {
+      showAlert('Нет готовых видео для склейки');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const finalUrl = await stitchVideos(readyVideos, (msg, prog) => {
+        setExportProgress(prog);
+      });
+      
+      const a = document.createElement('a');
+      a.href = finalUrl;
+      a.download = `project-${projectName}.mp4`;
+      a.click();
+    } catch (err) {
+      showAlert('Ошибка экспорта');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (projectMode === 'workflow') {
+      handleCreateScenario();
+      return;
+    }
+    // ... (rest of simple create logic)
 
   const handleDelete = (index) => {
     setGenerations(generations.filter((_, i) => i !== index));

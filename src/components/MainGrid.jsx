@@ -54,14 +54,23 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
 
       {/* Info Area */}
       <div className="p-4 space-y-1">
-        <p className="text-xs font-medium text-white/90 line-clamp-1 group-hover:text-tg-button transition-colors">
-          {item.prompt || 'Untitled Generation'}
-        </p>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] uppercase font-bold text-tg-hint tracking-widest opacity-60">
-            {item.aspectRatio || '16:9'} • CogVideoX
+          <p className="text-xs font-bold text-white/90 line-clamp-1 group-hover:text-tg-button transition-colors">
+            {item.sceneName || item.prompt || 'Без названия'}
+          </p>
+          {item.status === 'draft' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-tg-hint border border-white/5">DRAFT</span>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] uppercase font-bold text-tg-hint tracking-widest opacity-60 truncate max-w-[150px]">
+            {item.status === 'generating' ? 'Построение сцены...' : (item.prompt || 'CogVideoX')}
           </span>
-          <ExternalLink size={10} className="text-tg-hint/30" />
+          <div className="flex gap-1">
+             <div className={`w-1 h-1 rounded-full ${item.imageUrl ? 'bg-green-500' : 'bg-white/10'}`} />
+             <div className={`w-1 h-1 rounded-full ${item.videoUrl ? 'bg-green-500' : 'bg-white/10'}`} />
+             <div className={`w-1 h-1 rounded-full ${item.audioUrl ? 'bg-green-500' : 'bg-white/10'}`} />
+          </div>
         </div>
       </div>
     </motion.div>
