@@ -111,15 +111,15 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-tg-bg text-tg-text font-sans overflow-hidden">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-tg-bg/80 backdrop-blur-xl z-30">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-tg-button/20 flex items-center justify-center border border-tg-button/30">
-             <Layers className="text-tg-button" size={18} />
+      <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/5 bg-tg-bg/80 backdrop-blur-xl z-30 shrink-0">
+        <div className="flex items-center gap-2 md:gap-4 flex-1">
+          <div className="w-8 h-8 rounded-lg bg-tg-button/20 flex items-center justify-center border border-tg-button/30 shrink-0">
+             <Layers className="text-tg-button" size={16} />
           </div>
           <input 
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            className="bg-transparent border-none p-0 font-bold text-sm tracking-tight focus:ring-0 w-full max-w-[200px] lg:max-w-md"
+            className="bg-transparent border-none p-0 font-bold text-[13px] md:text-sm tracking-tight focus:ring-0 w-full max-w-[140px] md:max-w-md truncate"
             placeholder="Untitled Project"
           />
         </div>
@@ -158,7 +158,7 @@ function App() {
         {!isMobile && <div className="w-0 xl:w-[0px] order-none" />}
         
         {/* Main Canvas */}
-        <div className={`flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar ${!isMobile ? 'mr-[350px]' : ''}`}>
+        <div className={`flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-10 ${!isMobile ? 'mr-[350px]' : ''}`}>
           <div className="max-w-[1200px] mx-auto">
             {/* Board Header Info (Optional) */}
             <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -230,7 +230,8 @@ function App() {
       {isMobile && !isPanelOpen && generations.length > 0 && (
         <button 
           onClick={() => setIsPanelOpen(true)}
-          className="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-tg-button text-white shadow-2xl shadow-tg-button/40 flex items-center justify-center z-40 animate-bounce"
+          className="fixed right-6 w-14 h-14 rounded-full bg-tg-button text-white shadow-2xl shadow-tg-button/40 flex items-center justify-center z-40 animate-bounce"
+          style={{ bottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
         >
           <Sparkles size={24} />
         </button>

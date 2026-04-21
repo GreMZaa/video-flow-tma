@@ -31,7 +31,7 @@ const RightPanel = ({
   ];
 
   const panelContent = (
-    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Header (only for mobile drawer) */}
       {isMobile && (
         <div className="flex items-center justify-between p-6 border-b border-white/5">

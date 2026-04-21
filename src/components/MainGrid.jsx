@@ -69,19 +69,21 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
 };
 
 const MainGrid = ({ generations, onDelete, onPlay }) => {
-  if (generations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
-        <div className="w-24 h-24 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6">
-          <Video size={40} className="text-tg-hint/20" />
-        </div>
-        <h3 className="text-xl font-bold text-white/40 mb-2">Здесь пока ничего нет</h3>
-        <p className="text-sm text-tg-hint/40 max-w-xs uppercase tracking-widest text-[10px] font-bold leading-relaxed">
-          Используйте панель справа, чтобы сгенерировать ваше первое видео в стиле Claymation
+      <div className="flex flex-col items-center justify-center min-h-[50vh] xl:min-h-[60vh] text-center px-6 py-12">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6"
+        >
+          <Video size={36} className="text-tg-hint/20" />
+        </motion.div>
+        <h3 className="text-xl font-bold text-white/50 mb-2">Здесь пока ничего нет</h3>
+        <p className="text-sm text-tg-hint/40 max-w-xs uppercase tracking-widest text-[9px] md:text-[10px] font-bold leading-relaxed">
+          Используйте панель генерации, чтобы создать ваше первое видео
         </p>
       </div>
     );
-  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
