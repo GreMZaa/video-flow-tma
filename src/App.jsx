@@ -29,6 +29,44 @@ function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false); // Mobile drawer state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeVideo, setActiveVideo] = useState(null); // For preview
+  const [showDebug, setShowDebug] = useState(true);
+  const [debugInfo, setDebugInfo] = useState({ version: 'loading...', expanded: false, height: 0 });
+
+  // Debug monitoring
+  useEffect(() => {
+    if (tg) {
+      setDebugInfo({
+        version: tg.version || 'v?',
+        expanded: tg.isExpanded || false,
+        height: tg.viewportHeight || 0
+      });
+
+      const handleViewport = () => {
+        setDebugInfo({
+          version: tg.version || 'v?',
+          expanded: tg.isExpanded || false,
+          height: tg.viewportHeight || 0
+        });
+      };
+      tg.onEvent('viewportChanged', handleViewport);
+      
+      const timer = setTimeout(() => setShowDebug(false), 20000); // Hide after 20s
+      return () => {
+        tg.offEvent('viewportChanged', handleViewport);
+        clearTimeout(timer);
+      };
+    }
+  }, [tg]);
+
+  const forceExpand = () => {
+    if (tg) {
+      tg.expand();
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+      showHaptic('success');
+      // Visual feedback
+      setDebugInfo(prev => ({ ...prev, expanded: tg.isExpanded }));
+    }
+  };
   
   // Pipeline Settings
   const [projectMode, setProjectMode] = useState('workflow'); // 'quick' or 'workflow'
@@ -232,6 +270,24 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-tg-bg text-tg-text font-sans overflow-hidden">
+      {/* Debug Banner */}
+      {showDebug && (
+        <div className="debug-banner z-[999] bg-red-600/90 backdrop-blur-md px-4 py-2 flex items-center justify-between border-b border-white/20">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-tighter">Debug Mode v2</span>
+            <span className="text-[9px] font-mono opacity-80">
+              API: {debugInfo.version} | Exp: {debugInfo.expanded ? 'YES' : 'NO'} | H: {debugInfo.height}px
+            </span>
+          </div>
+          <button 
+            onClick={forceExpand}
+            className="px-3 py-1 bg-white text-red-600 rounded-lg text-[10px] font-bold shadow-lg active:scale-95 transition-transform"
+          >
+            ФИКС ЭКРАНА
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/5 bg-tg-bg/80 backdrop-blur-xl z-30 shrink-0">
         <div className="flex items-center gap-2 md:gap-4 flex-1">
