@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  --tg-bg: var(--tg-theme-bg-color, #0f172a);
+  --tg-text: var(--tg-theme-text-color, #f8fafc);
+  --tg-hint: var(--tg-theme-hint-color, #94a3b8);
+  --tg-link: var(--tg-theme-link-color, #38bdf8);
+  --tg-button: var(--tg-theme-button-color, #38bdf8);
+  --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+  --tg-secondary: var(--tg-theme-secondary-bg-color, #1e293b);
+  --tg-header: var(--tg-theme-header-bg-color, #0f172a);
+}
+
+@theme {
+  --color-tg-bg: var(--tg-bg);
+  --color-tg-text: var(--tg-text);
+  --color-tg-button: var(--tg-button);
+  --color-tg-secondary: var(--tg-secondary);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--tg-bg);
+  color: var(--tg-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  /* Prevent bounce effect on mobile */
+  overscroll-behavior-y: none;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.flow-card {
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+input, textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--tg-text);
+  transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--tg-button);
+  outline: none;
+}
+
+.btn-primary {
+  background-color: var(--tg-button);
+  color: var(--tg-button-text);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+}
+
+/* Telegram smooth appearance */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-hint);
+  border-radius: 10px;
+}
