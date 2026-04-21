@@ -24,7 +24,7 @@ export const useTelegram = () => {
       
       tg.onEvent('viewportChanged', handleViewport);
 
-      const intervals = [100, 300, 600, 1000, 2000, 5000].map(ms => 
+      const intervals = [500, 1500, 3000].map(ms => 
         setTimeout(() => {
           if (!tg.isExpanded) tg.expand();
         }, ms)

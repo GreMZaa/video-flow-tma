@@ -32,11 +32,8 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  /* Prevent iOS pull-to-close gesture at the root level */
-  touch-action: none;
+  /* Use overscroll-behavior to prevent browser level refresh/pull-to-close */
   overscroll-behavior: none;
-  position: fixed;
-  width: 100%;
 }
 
 .glass {

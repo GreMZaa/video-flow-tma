@@ -23,14 +23,6 @@
               tw.disableVerticalSwipes();
             }
             
-            // "Viewport Jiggle" hack to force expansion recognition on iOS
-            var originalHeight = window.innerHeight;
-            document.documentElement.style.height = '100.1%';
-            setTimeout(function() {
-              document.documentElement.style.height = '100%';
-              tw.expand();
-            }, 500);
-
             // Aggressive retry logic for expansion
             var count = 0;
             var interval = setInterval(function() {
@@ -40,8 +32,8 @@
               }
               tw.expand();
               count++;
-              if (count > 30) clearInterval(interval);
-            }, 200);
+              if (count > 20) clearInterval(interval);
+            }, 300);
           }
         } catch (e) {
           console.error('TMA Init Error', e);
