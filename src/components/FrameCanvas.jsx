@@ -66,90 +66,100 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
   return (
     <motion.div 
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="glass rounded-3xl overflow-hidden mb-6 flow-card border border-white/5"
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="liquid-glass rounded-[2rem] overflow-hidden mb-8 flow-card border-none shadow-2xl group"
     >
-      <div className="relative aspect-video bg-black/40 flex items-center justify-center">
+      <div className="relative aspect-video bg-black/60 flex items-center justify-center overflow-hidden">
         {frame.imageUrl ? (
-          <img 
+          <motion.img 
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
             src={frame.imageUrl} 
             alt={`Frame ${index + 1}`} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
-          <div className="text-tg-hint/30 flex flex-col items-center">
-            <Wand2 size={48} className="mb-2" />
-            <span className="text-sm font-medium">Пустой кадр</span>
+          <div className="text-tg-hint/20 flex flex-col items-center">
+            <div className="p-6 bg-white/5 rounded-full mb-4">
+              <Wand2 size={48} className="animate-pulse" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Пустой Кадр</span>
           </div>
         )}
         
         {loading && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
-            <Loader2 className="animate-spin text-tg-button mb-2" size={32} />
-            <span className="text-xs font-bold tracking-widest text-tg-button uppercase animate-pulse">
-              Генерация...
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+            <div className="p-4 bg-white/5 rounded-full mb-4">
+              <Loader2 className="animate-spin text-tg-button" size={32} />
+            </div>
+            <span className="text-[10px] font-black tracking-[0.4em] text-tg-button uppercase animate-pulse shadow-glow">
+              Магия...
             </span>
           </div>
         )}
 
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute top-4 left-4 flex gap-2 z-10">
             <button 
               onClick={handlePlayTTS}
-              className="bg-black/60 backdrop-blur-md p-2 rounded-full text-white hover:text-tg-button transition-colors"
+              className="bg-black/40 backdrop-blur-xl p-2.5 rounded-xl text-white hover:text-tg-button transition-all active:scale-90 border border-white/10"
               title="Прослушать озвучку"
             >
-              <Volume2 size={16} />
+              <Volume2 size={18} />
             </button>
         </div>
 
         {frame.isVideoGenerated && (
-          <div className="absolute top-3 right-3 bg-green-500/80 p-1.5 rounded-full shadow-lg">
-            <Play size={12} className="text-white fill-current" />
+          <div className="absolute top-4 right-4 bg-emerald-500 p-2.5 rounded-xl shadow-glow ring-2 ring-white/20 z-10">
+            <Play size={14} className="text-white fill-current" />
           </div>
         )}
+
+        <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-xl px-3 py-1.5 rounded-lg border border-white/10 z-10">
+          <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">КАДР {index + 1}</span>
+        </div>
       </div>
 
-      <div className="p-5 space-y-4">
-        <div>
-          <label className="text-[10px] uppercase tracking-widest font-bold text-tg-hint mb-1.5 block">
-            Действие кадра / Сцена
+      <div className="p-6 space-y-5 bg-white/[0.02]">
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.25em] font-black text-tg-hint ml-1 opacity-50">
+            Действие в кадре
           </label>
           <input
             value={frame.prompt}
             onChange={(e) => onUpdate(index, { ...frame, prompt: e.target.value })}
-            placeholder="Опишите действие для этого кадра..."
-            className="w-full bg-white/5 border-white/10 rounded-xl p-3 text-sm"
+            placeholder="Что происходит в этой сцене?..."
+            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-tg-button/20 transition-all placeholder:opacity-30"
           />
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           {!frame.imageUrl ? (
             <button 
               onClick={handleGenerateImage}
               disabled={loading}
-              className="flex-1 btn-primary py-3 flex items-center justify-center gap-2"
+              className="flex-1 btn-primary py-4 flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] transition-all"
             >
-              <Wand2 size={18} />
-              <span>Визуализировать</span>
+              <Wand2 size={20} />
+              <span className="font-black uppercase tracking-[0.15em] text-xs">ВИЗУАЛИЗИРОВАТЬ</span>
             </button>
           ) : (
             <button 
               onClick={handleGenerateVideo}
               disabled={loading}
-              className="flex-1 bg-white/10 hover:bg-white/20 p-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 bg-white/10 hover:bg-white/20 p-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-white/5"
             >
-              <Video size={18} className="text-tg-button" />
-              <span className="text-sm font-semibold italic">Анимировать</span>
+              <Video size={20} className="text-tg-button" />
+              <span className="text-xs font-black uppercase tracking-[0.15em] text-white">АНИМИРОВАТЬ</span>
             </button>
           )}
           
           <button 
             onClick={() => { onDelete(index); showHaptic('medium'); }}
-            className="p-3 glass rounded-xl text-tg-hint hover:text-red-400 transition-colors"
+            className="p-4 liquid-glass rounded-2xl text-tg-hint hover:text-red-400 transition-all active:scale-90"
           >
-            <Trash2 size={18} />
+            <Trash2 size={20} />
           </button>
         </div>
       </div>
@@ -176,14 +186,19 @@ const FrameCanvas = ({ characterPrompt, frames, setFrames, apiKey, onPreview }) 
   };
 
   return (
-    <div className="pb-24">
-      <div className="mb-8 p-4 glass rounded-2xl border-l-4 border-tg-button relative overflow-hidden">
-        <span className="text-[10px] uppercase font-bold text-tg-button tracking-widest block mb-1">Глобальный объект</span>
-        <p className="text-sm italic opacity-80 line-clamp-2">{characterPrompt}</p>
-        <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-tg-button/5 blur-2xl rounded-full" />
+    <div className="pb-32 px-4">
+      <div className="mb-10 p-6 liquid-glass rounded-[2rem] border-l-0 relative overflow-hidden group">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-1.5 h-1.5 bg-tg-button rounded-full animate-pulse" />
+          <span className="text-[10px] uppercase font-black text-tg-button tracking-[0.3em] block opacity-80">Глобальный Стиль</span>
+        </div>
+        <p className="text-lg font-black tracking-tighter text-white/90 line-clamp-2 leading-tight">
+          {characterPrompt || "Опишите персонажа для начала..."}
+        </p>
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-tg-button/10 blur-[80px] rounded-full group-hover:bg-tg-button/20 transition-all duration-1000" />
       </div>
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode="popLayout">
         {frames.map((frame, index) => (
           <FrameCard 
             key={index}
@@ -198,24 +213,27 @@ const FrameCanvas = ({ characterPrompt, frames, setFrames, apiKey, onPreview }) 
       </AnimatePresence>
 
       <motion.button
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.98 }}
         onClick={addFrame}
-        className="w-full py-8 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-tg-hint hover:border-tg-button hover:text-tg-button transition-all glass bg-white/[0.01]"
+        className="w-full py-10 border-2 border-dashed border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center text-tg-hint/40 hover:border-tg-button/50 hover:text-tg-button transition-all liquid-glass group active:bg-white/5"
       >
-        <Plus size={32} className="mb-2" />
-        <span className="text-sm font-bold uppercase tracking-wider">Добавить кадр</span>
+        <div className="p-4 bg-white/5 rounded-full mb-4 group-hover:scale-110 transition-transform">
+          <Plus size={32} />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-[0.4em]">Добавить Новую Сцену</span>
       </motion.button>
 
       {frames.length > 0 && frames.some(f => f.isVideoGenerated) && (
-        <div className="mt-10 p-6 glass rounded-3xl border border-tg-button/20 flex flex-col items-center text-center">
-          <h3 className="text-lg font-bold mb-2">Сценарий готов</h3>
-          <p className="text-xs text-tg-hint mb-6">Склеить все анимированные фрагменты в один MP4</p>
+        <div className="mt-12 p-8 liquid-glass rounded-[2.5rem] border-white/20 flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-tg-button/10 to-transparent pointer-events-none" />
+          <h3 className="text-2xl font-black mb-2 tracking-tighter uppercase relative z-10">Сценарий Готов</h3>
+          <p className="text-[10px] uppercase font-black tracking-widest text-tg-hint mb-8 opacity-60 relative z-10">Склеить фрагменты в финальный MP4</p>
           <button 
             onClick={() => { onPreview(); showHaptic('success'); }}
-            className="w-full btn-primary flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+            className="w-full btn-primary py-5 flex items-center justify-center gap-4 shadow-2xl shadow-tg-button/40 relative z-10 active:scale-[0.98]"
           >
-            <Play size={20} fill="currentColor" />
-            <span>Создать полное видео</span>
+            <Play size={24} fill="currentColor" />
+            <span className="font-black uppercase tracking-[0.2em]">Создать Магию</span>
           </button>
         </div>
       )}

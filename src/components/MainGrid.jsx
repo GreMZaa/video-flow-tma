@@ -6,72 +6,78 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="group relative glass rounded-[24px] overflow-hidden border border-white/5 bg-white/[0.02] hover:border-tg-button/50 transition-all duration-500"
+      transition={{ 
+        type: "spring", 
+        stiffness: 100, 
+        damping: 15,
+        mass: 1
+      }}
+      className="group relative liquid-glass rounded-[2rem] overflow-hidden hover:border-tg-button/40 transition-all duration-500"
     >
       {/* Thumbnail Area */}
-      <div className="relative aspect-video bg-black/60 overflow-hidden cursor-pointer" onClick={onPlay}>
+      <div className="relative aspect-video bg-black/40 overflow-hidden cursor-pointer" onClick={onPlay}>
         {item.imageUrl && (
           <img 
             src={item.imageUrl} 
             alt={item.prompt} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100"
           />
         )}
         
         {/* Hover Overlays */}
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500" />
         
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="w-14 h-14 rounded-full bg-tg-button/90 flex items-center justify-center shadow-2xl shadow-tg-button/40 scale-90 group-hover:scale-100 transition-transform duration-300">
-            <Play size={24} className="text-white fill-current ml-1" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
+          <div className="w-16 h-16 rounded-full bg-tg-button/95 flex items-center justify-center shadow-2xl shadow-tg-button/40 transition-transform duration-300 hover:scale-110 active:scale-95">
+            <Play size={28} className="text-white fill-current ml-1" />
           </div>
         </div>
 
         {/* Status Badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
-          <div className="glass px-2 py-1 rounded-lg flex items-center gap-1.5 backdrop-blur-md border-white/10 shrink-0">
+        <div className="absolute top-4 left-4 flex gap-2">
+          <div className="liquid-glass px-2.5 py-1 rounded-xl flex items-center gap-1.5 backdrop-blur-3xl border-white/10 shrink-0">
             <Clock size={10} className="text-tg-button" />
-            <span className="text-[10px] font-bold text-white tracking-wider">5s</span>
+            <span className="text-[10px] font-black text-white tracking-widest">5S</span>
           </div>
           {item.style && (
-            <div className="hidden lg:flex glass px-2 py-1 rounded-lg items-center gap-1.5 backdrop-blur-md border-white/10">
+            <div className="hidden lg:flex liquid-glass px-2.5 py-1 rounded-xl items-center gap-1.5 backdrop-blur-3xl border-white/10">
               <Sparkles size={10} className="text-amber-400" />
-              <span className="text-[10px] font-bold text-white/70 truncate max-w-[80px]">{item.style}</span>
+              <span className="text-[10px] font-black text-white/80 truncate max-w-[100px] uppercase tracking-tighter">{item.style}</span>
             </div>
           )}
         </div>
 
         <button 
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-red-500/80 rounded-xl text-white/50 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          className="absolute top-4 right-4 p-2.5 bg-black/40 hover:bg-red-500 rounded-xl text-white/40 hover:text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
         >
-          <Trash2 size={14} />
+          <Trash2 size={16} />
         </button>
       </div>
 
       {/* Info Area */}
-      <div className="p-4 space-y-1">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-bold text-white/90 line-clamp-1 group-hover:text-tg-button transition-colors">
+      <div className="p-6 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-bold text-white/95 line-clamp-1 group-hover:text-tg-button transition-colors tracking-tighter">
             {item.sceneName || item.prompt || 'Без названия'}
           </p>
           {item.status === 'draft' && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-tg-hint border border-white/5">DRAFT</span>
+            <span className="text-[9px] px-2 py-0.5 rounded-lg bg-white/5 text-tg-hint border border-white/5 font-black tracking-widest">DRAFT</span>
           )}
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] uppercase font-bold text-tg-hint tracking-widest opacity-60 truncate max-w-[150px]">
-            {item.status === 'generating' ? 'Сценарий...' : 
+          <span className="text-[10px] uppercase font-black text-tg-hint tracking-[0.1em] opacity-40 truncate max-w-[80%]">
+            {item.status === 'generating' ? 'Инициализация...' : 
              item.status === 'generating_video' ? 'Магия видео...' : 
              (item.prompt || 'CogVideoX')}
           </span>
-          <div className="flex gap-1">
-             <div className={`w-1 h-1 rounded-full ${item.imageUrl ? 'bg-green-500' : 'bg-white/10'}`} />
-             <div className={`w-1 h-1 rounded-full ${item.videoUrl ? 'bg-green-500' : 'bg-white/10'}`} />
-             <div className={`w-1 h-1 rounded-full ${item.audioUrl ? 'bg-green-500' : 'bg-white/10'}`} />
+          <div className="flex gap-1.5">
+             <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${item.imageUrl ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-white/10'}`} title="Image" />
+             <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${item.videoUrl ? 'bg-tg-button shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'bg-white/10'}`} title="Video" />
+             <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${item.audioUrl ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/10'}`} title="Audio" />
           </div>
         </div>
       </div>

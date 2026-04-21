@@ -4,12 +4,12 @@ import RightPanel from './components/RightPanel';
 import MainGrid from './components/MainGrid';
 import SettingsModal from './components/SettingsModal';
 import { Settings, Share2, Crown, Layers, Search, Menu, Sparkles } from 'lucide-react';
-import { generateImage, generateVideoSegment, generateScenario, generateTTS, VOICE_OPTIONS, stitchVideos } from './services/api';
+import { generateImage, generateVideoSegment, generateScenario, generateTTS, getVideoStatus, VOICE_OPTIONS, stitchVideos } from './services/api';
 
 function App() {
-  const { tg, showHaptic, showAlert } = useTelegram();
-  
-  // Persistence States
+  const { tg, showHaptic, showAlert, showMainButton, hideMainButton, setMainButtonLoading } = useTelegram();
+
+  // ── All state declarations first ──────────────────────────────────────────
   const [projectName, setProjectName] = useState(
     localStorage.getItem('projectName') || 'Claymation Pushkin Interview'
   );
@@ -19,23 +19,23 @@ function App() {
   const [apiKey, setApiKey] = useState(
     localStorage.getItem('SILICON_FLOW_KEY') || ''
   );
-  
-  // App states
+
   const [actionPrompt, setActionPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [generations, setGenerations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPanelOpen, setIsPanelOpen] = useState(false); // Mobile drawer state
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [activeVideo, setActiveVideo] = useState(null); // For preview
-  const [showDebug, setShowDebug] = useState(true);
+  const [activeVideo, setActiveVideo] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
   const [debugInfo, setDebugInfo] = useState({ 
     version: '...', 
     expanded: false, 
     height: 0,
     sdk: 'pending',
-    ua: navigator.userAgent.slice(0, 15) + '...'
+    ua: navigator.userAgent.includes('Telegram') ? 'TMA' : 'BROW'
   });
 
   // Debug monitoring
@@ -147,6 +147,7 @@ function App() {
 
     setIsLoading(true);
     showHaptic('medium');
+    setMainButtonLoading(true);
 
     for (const item of drafts) {
       try {
@@ -195,6 +196,7 @@ function App() {
     }
     
     setIsLoading(false);
+    setMainButtonLoading(false);
     showHaptic('success');
   };
 
@@ -274,23 +276,48 @@ function App() {
     showHaptic('light');
   };
 
+  // ── Telegram MainButton: show when prompt is ready on mobile ──────────────
+  useEffect(() => {
+    if (isMobile && actionPrompt.trim() && !isLoading) {
+      showMainButton('СГЕНЕРИРОВАТЬ МАГИЮ', handleCreate);
+    } else {
+      hideMainButton();
+    }
+    return () => hideMainButton();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, actionPrompt, isLoading]);
+
+  // Sync loading spinner to MainButton
+  useEffect(() => {
+    setMainButtonLoading(isLoading);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
   return (
-    <div className="flex flex-col h-screen bg-tg-bg text-tg-text font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-tg-bg text-tg-text font-sans overflow-hidden antialiased tracking-tight">
       {/* Debug Banner */}
       {showDebug && (
         <div className="debug-banner z-[999] bg-red-600/90 backdrop-blur-md px-4 py-2 flex items-center justify-between border-b border-white/20">
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-tighter">Debug Mode v2</span>
             <span className="text-[9px] font-mono opacity-80 leading-tight">
-              API:{debugInfo.version} | EXP:{debugInfo.expanded ? 'Y' : 'N'} | H:{debugInfo.height} | SDK:{debugInfo.sdk} | {debugInfo.ua}
+              API:{debugInfo.version} | EXP:{debugInfo.expanded ? 'Y' : 'N'} | H:{Math.round(debugInfo.height)} | SDK:{debugInfo.sdk} | {debugInfo.ua}
             </span>
           </div>
-          <button 
-            onClick={forceExpand}
-            className="px-3 py-1 bg-white text-red-600 rounded-lg text-[10px] font-bold shadow-lg active:scale-95 transition-transform"
-          >
-            ФИКС ЭКРАНА
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={forceExpand}
+              className="px-2 py-1 bg-white text-red-600 rounded-md text-[9px] font-bold active:scale-95"
+            >
+              FIX
+            </button>
+            <button 
+              onClick={() => setShowDebug(false)}
+              className="px-2 py-1 bg-black/20 text-white rounded-md text-[9px] active:scale-95"
+            >
+              HIDE
+            </button>
+          </div>
         </div>
       )}
 
@@ -300,12 +327,20 @@ function App() {
           <div className="w-8 h-8 rounded-lg bg-tg-button/20 flex items-center justify-center border border-tg-button/30 shrink-0">
              <Layers className="text-tg-button" size={16} />
           </div>
-          <input 
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            className="bg-transparent border-none p-0 font-bold text-[13px] md:text-sm tracking-tight focus:ring-0 w-full max-w-[140px] md:max-w-md truncate"
-            placeholder="Untitled Project"
-          />
+            <input 
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              onClick={() => {
+                setTapCount(prev => prev + 1);
+                if (tapCount + 1 >= 5) {
+                  setShowDebug(true);
+                  setTapCount(0);
+                  showHaptic('success');
+                }
+              }}
+              className="bg-transparent border-none p-0 font-bold text-[13px] md:text-sm tracking-tighter focus:ring-0 w-full max-w-[1400px] truncate"
+              placeholder="Untitled Project"
+            />
         </div>
         
         <div className="flex items-center gap-2">
@@ -321,7 +356,7 @@ function App() {
           )}
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2.5 rounded-xl glass hover:bg-tg-button/10 hover:text-tg-button transition-all border border-white/5"
+            className="p-2.5 rounded-xl liquid-glass hover:bg-tg-button/10 hover:text-tg-button transition-all"
           >
             <Settings size={18} />
           </button>
