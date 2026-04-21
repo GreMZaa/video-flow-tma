@@ -25,7 +25,7 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Key size={20} className="text-tg-button" />
-              Settings
+              Настройки
             </h3>
             <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors">
               <X size={24} />
@@ -46,13 +46,13 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
               />
               <p className="text-[10px] text-tg-hint mt-2 ml-1 flex items-center gap-1">
                 <ShieldCheck size={12} />
-                Stored locally on your device
+                Хранится локально на вашем устройстве
               </p>
             </div>
 
             <div className="bg-tg-button/10 p-4 rounded-2xl border border-tg-button/20">
               <p className="text-xs leading-relaxed text-tg-button/90">
-                You can get your free API key at <a href="https://siliconflow.cn" target="_blank" rel="noreferrer" className="underline font-bold">siliconflow.cn</a>. This enables the CogVideo logic.
+                Вы можете получить бесплатный API-ключ на сайте <a href="https://siliconflow.cn" target="_blank" rel="noreferrer" className="underline font-bold">siliconflow.cn</a>. Это активирует логику CogVideo.
               </p>
             </div>
 
@@ -60,7 +60,7 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
               onClick={onClose}
               className="w-full btn-primary mt-4"
             >
-              Save & Close
+              Сохранить и закрыть
             </button>
           </div>
         </motion.div>

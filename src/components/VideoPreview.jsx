@@ -15,7 +15,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
 
   const handleStitch = async () => {
     if (generatedFrames.length === 0) {
-      showAlert('No animated segments found to stitch.');
+      showAlert('Не найдено анимированных фрагментов для склейки.');
       return;
     }
 
@@ -33,7 +33,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
       showHaptic('success');
     } catch (err) {
       console.error(err);
-      showAlert('Failed to stitch videos. Ensure COOP/COEP headers are set.');
+      showAlert('Не удалось склеить видео. Проверьте заголовки COOP/COEP.');
     } finally {
       setIsStitching(false);
     }
@@ -53,7 +53,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
         <div className="p-4 flex items-center justify-between glass border-b border-white/5 sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-tg-button" />
-            <h3 className="font-bold tracking-tight">Final Sequence</h3>
+            <h3 className="font-bold tracking-tight">Финальное видео</h3>
           </div>
           <button onClick={onClose} className="p-2 glass rounded-full hover:bg-white/10 transition-colors">
             <X size={20} />
@@ -96,7 +96,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                   ) : (
                     <div className="space-y-3 opacity-40">
                       <Play size={48} className="mx-auto" />
-                      <p className="text-sm font-medium">Ready to Assemble {generatedFrames.length} Segments</p>
+                      <p className="text-sm font-medium">Готов к сборке {generatedFrames.length} фрагментов</p>
                     </div>
                   )}
                 </div>
@@ -113,7 +113,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                 >
                   {isStitching ? <Loader2 className="animate-spin" /> : <Download size={20} />}
                   <span className="font-bold uppercase tracking-wider">
-                    {isStitching ? 'Assembling...' : 'Export Final MP4'}
+                    {isStitching ? 'Сборка...' : 'Экспортировать MP4'}
                   </span>
                 </button>
               ) : (
@@ -124,20 +124,20 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                     className="w-full btn-primary py-4 flex items-center justify-center gap-3 bg-green-600 border-none"
                   >
                     <Download size={20} />
-                    <span className="font-bold tracking-wide">Download Result</span>
+                    <span className="font-bold tracking-wide">Скачать результат</span>
                   </a>
                   <button 
                     onClick={() => { setFinalVideoUrl(null); showHaptic('light'); }}
                     className="w-full py-3 glass rounded-2xl text-sm font-medium opacity-60 hover:opacity-100 transition-opacity"
                   >
-                    Edit & Re-stitch
+                    Редактировать и пересобрать
                   </button>
                 </div>
               )}
 
               {/* Segment Breakdown */}
               <div className="glass rounded-3xl p-5 border border-white/5 bg-white/[0.02]">
-                  <h4 className="text-[10px] uppercase font-bold text-tg-hint tracking-[0.2em] mb-4">Sequence Layout</h4>
+                  <h4 className="text-[10px] uppercase font-bold text-tg-hint tracking-[0.2em] mb-4">Структура видео</h4>
                   <div className="space-y-4">
                     {generatedFrames.map((frame, i) => (
                       <div key={i} className="flex items-center gap-4 group">
@@ -149,11 +149,11 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold truncate group-hover:text-tg-button transition-colors">
-                            {frame.prompt || 'Animated Segment'}
+                            {frame.prompt || 'Анимированный фрагмент'}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                              <CheckCircle2 size={10} className="text-green-500" />
-                             <span className="text-[10px] text-tg-hint uppercase font-bold tracking-tight">CogVideo 5B Optimized</span>
+                             <span className="text-[10px] text-tg-hint uppercase font-bold tracking-tight">Оптимизировано для CogVideo 5B</span>
                           </div>
                         </div>
                         <ExternalLink size={14} className="text-tg-hint/30" />

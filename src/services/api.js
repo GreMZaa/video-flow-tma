@@ -56,7 +56,7 @@ export const generateVideoSegment = async (imageRef, motionPrompt, apiKey) => {
 export const stitchVideos = async (videoUrls, onProgress) => {
   const ffmpeg = new FFmpeg();
   
-  onProgress('Loading FFmpeg...', 10);
+  onProgress('Загрузка инструментов...', 10);
   
   const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
   await ffmpeg.load({
@@ -64,7 +64,7 @@ export const stitchVideos = async (videoUrls, onProgress) => {
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
 
-  onProgress('Downloading segments...', 30);
+  onProgress('Скачивание фрагментов...', 30);
 
   // Write files to FFmpeg virtual FS
   const inputFiles = [];
@@ -78,17 +78,17 @@ export const stitchVideos = async (videoUrls, onProgress) => {
   const concatList = inputFiles.join('\n');
   await ffmpeg.writeFile('concat.txt', concatList);
 
-  onProgress('Stitching videos...', 60);
+  onProgress('Склейка видео...', 60);
 
   // Run concat command
   // Note: CogVideoX files should have the same encoding, so -c copy is fast and reliable
   await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat.txt', '-c', 'copy', 'output.mp4']);
 
-  onProgress('Finalizing export...', 90);
+  onProgress('Завершение экспорта...', 90);
 
   const data = await ffmpeg.readFile('output.mp4');
   const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
 
-  onProgress('Done!', 100);
+  onProgress('Готово!', 100);
   return url;
 };

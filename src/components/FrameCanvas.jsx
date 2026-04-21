@@ -24,11 +24,11 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
 
   const handleGenerateVideo = async () => {
     if (!apiKey) {
-      showAlert('Enter SILICON_FLOW_KEY in settings.');
+      showAlert('Введите SILICON_FLOW_KEY в настройках.');
       return;
     }
     if (!frame.imageUrl) {
-      showAlert('Generate image first.');
+      showAlert('Сначала создайте изображение.');
       return;
     }
 
@@ -47,7 +47,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
         showHaptic('success');
       }, 5000);
     } catch (err) {
-      showAlert('Video Generation Failed.');
+      showAlert('Ошибка генерации видео.');
       setLoading(false);
       showHaptic('error');
     }
@@ -81,7 +81,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
         ) : (
           <div className="text-tg-hint/30 flex flex-col items-center">
             <Wand2 size={48} className="mb-2" />
-            <span className="text-sm font-medium">Empty Frame</span>
+            <span className="text-sm font-medium">Пустой кадр</span>
           </div>
         )}
         
@@ -89,7 +89,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
             <Loader2 className="animate-spin text-tg-button mb-2" size={32} />
             <span className="text-xs font-bold tracking-widest text-tg-button uppercase animate-pulse">
-              Generating...
+              Генерация...
             </span>
           </div>
         )}
@@ -98,7 +98,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
             <button 
               onClick={handlePlayTTS}
               className="bg-black/60 backdrop-blur-md p-2 rounded-full text-white hover:text-tg-button transition-colors"
-              title="Listen to voice-over"
+              title="Прослушать озвучку"
             >
               <Volume2 size={16} />
             </button>
@@ -114,12 +114,12 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
       <div className="p-5 space-y-4">
         <div>
           <label className="text-[10px] uppercase tracking-widest font-bold text-tg-hint mb-1.5 block">
-            Frame Action / Scene
+            Действие кадра / Сцена
           </label>
           <input
             value={frame.prompt}
             onChange={(e) => onUpdate(index, { ...frame, prompt: e.target.value })}
-            placeholder="Describe action for this frame..."
+            placeholder="Опишите действие для этого кадра..."
             className="w-full bg-white/5 border-white/10 rounded-xl p-3 text-sm"
           />
         </div>
@@ -132,7 +132,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
               className="flex-1 btn-primary py-3 flex items-center justify-center gap-2"
             >
               <Wand2 size={18} />
-              <span>Visualize</span>
+              <span>Визуализировать</span>
             </button>
           ) : (
             <button 
@@ -141,7 +141,7 @@ const FrameCard = ({ frame, index, onUpdate, onDelete, characterPrompt, apiKey }
               className="flex-1 bg-white/10 hover:bg-white/20 p-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
             >
               <Video size={18} className="text-tg-button" />
-              <span className="text-sm font-semibold italic">Animate</span>
+              <span className="text-sm font-semibold italic">Анимировать</span>
             </button>
           )}
           
@@ -178,7 +178,7 @@ const FrameCanvas = ({ characterPrompt, frames, setFrames, apiKey, onPreview }) 
   return (
     <div className="pb-24">
       <div className="mb-8 p-4 glass rounded-2xl border-l-4 border-tg-button relative overflow-hidden">
-        <span className="text-[10px] uppercase font-bold text-tg-button tracking-widest block mb-1">Global Subject</span>
+        <span className="text-[10px] uppercase font-bold text-tg-button tracking-widest block mb-1">Глобальный объект</span>
         <p className="text-sm italic opacity-80 line-clamp-2">{characterPrompt}</p>
         <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-tg-button/5 blur-2xl rounded-full" />
       </div>
@@ -203,19 +203,19 @@ const FrameCanvas = ({ characterPrompt, frames, setFrames, apiKey, onPreview }) 
         className="w-full py-8 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-tg-hint hover:border-tg-button hover:text-tg-button transition-all glass bg-white/[0.01]"
       >
         <Plus size={32} className="mb-2" />
-        <span className="text-sm font-bold uppercase tracking-wider">Add Next Frame</span>
+        <span className="text-sm font-bold uppercase tracking-wider">Добавить кадр</span>
       </motion.button>
 
       {frames.length > 0 && frames.some(f => f.isVideoGenerated) && (
         <div className="mt-10 p-6 glass rounded-3xl border border-tg-button/20 flex flex-col items-center text-center">
-          <h3 className="text-lg font-bold mb-2">Sequence Ready</h3>
-          <p className="text-xs text-tg-hint mb-6">Stitch all animated segments into a single MP4</p>
+          <h3 className="text-lg font-bold mb-2">Сценарий готов</h3>
+          <p className="text-xs text-tg-hint mb-6">Склеить все анимированные фрагменты в один MP4</p>
           <button 
             onClick={() => { onPreview(); showHaptic('success'); }}
             className="w-full btn-primary flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(56,189,248,0.2)]"
           >
             <Play size={20} fill="currentColor" />
-            <span>Generate Full Video</span>
+            <span>Создать полное видео</span>
           </button>
         </div>
       )}

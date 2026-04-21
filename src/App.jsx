@@ -39,7 +39,7 @@ function App() {
   };
 
   const handleReset = () => {
-    if (window.confirm('Reset all progress and starting prompt?')) {
+    if (window.confirm('Сбросить весь прогресс и начальный промпт?')) {
       setCharacterPrompt('');
       localStorage.removeItem('globalCharacterPrompt');
       setFrames([]);
@@ -64,7 +64,7 @@ function App() {
             <h1 className="font-bold tracking-tight text-lg leading-tight">Video Flow</h1>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-              <span className="text-[10px] text-tg-hint uppercase font-bold tracking-wider">AI Engine Online</span>
+              <span className="text-[10px] text-tg-hint uppercase font-bold tracking-wider">ИИ-движок активен</span>
             </div>
           </div>
         </div>
@@ -124,7 +124,7 @@ function App() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-full border border-tg-button/20 shadow-lg flex items-center gap-2 z-30 pointer-events-none">
           <Sparkles size={14} className="text-tg-button" />
           <span className="text-[10px] uppercase font-bold tracking-widest text-tg-button">
-            {frames.length} Segments Active
+            Активно: {frames.length} сегм.
           </span>
         </div>
       )}

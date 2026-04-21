@@ -9,6 +9,8 @@ export const useTelegram = () => {
     if (tg) {
       tg.ready();
       tg.expand();
+      // Force expansion again after a short delay to handle iOS drawer behavior
+      setTimeout(() => tg.expand(), 500);
       setIsReady(true);
     }
   }, []);
