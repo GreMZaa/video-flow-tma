@@ -10,21 +10,31 @@ export const useTelegram = () => {
       tg.ready();
       tg.expand();
       
-      // Disable vertical swipes to prevent accidental app minimize/collapse on iOS
       if (tg.disableVerticalSwipes) {
         tg.disableVerticalSwipes();
       }
       
-      // Enable closing confirmation to prevent accidental swipes closing the app
       tg.enableClosingConfirmation();
 
-      // Final aggressive expand attempts
-      const intervals = [100, 300, 600, 1000].map(ms => 
-        setTimeout(() => tg.expand(), ms)
+      // Listen to viewport changes and force expand if height looks like half-state
+      const handleViewport = () => {
+        console.log('Viewport Changed:', tg.viewportHeight, tg.isExpanded);
+        if (!tg.isExpanded) tg.expand();
+      };
+      
+      tg.onEvent('viewportChanged', handleViewport);
+
+      const intervals = [100, 300, 600, 1000, 2000, 5000].map(ms => 
+        setTimeout(() => {
+          if (!tg.isExpanded) tg.expand();
+        }, ms)
       );
 
       setIsReady(true);
-      return () => intervals.forEach(clearTimeout);
+      return () => {
+        intervals.forEach(clearTimeout);
+        tg.offEvent('viewportChanged', handleViewport);
+      };
     }
   }, []);
 

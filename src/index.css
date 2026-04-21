@@ -32,7 +32,11 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  overscroll-behavior-y: none;
+  /* Prevent iOS pull-to-close gesture at the root level */
+  touch-action: none;
+  overscroll-behavior: none;
+  position: fixed;
+  width: 100%;
 }
 
 .glass {
@@ -98,4 +102,13 @@ input:focus, textarea:focus {
 
 .drawer-shadow {
   box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  /* Allow only vertical scrolling inside this container */
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
