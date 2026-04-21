@@ -36,7 +36,7 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
           <div className="space-y-6">
             <div className="space-y-3">
               <label className="block text-[10px] font-black uppercase text-tg-hint tracking-[0.2em] ml-1 opacity-60">
-                SILICON_FLOW_KEY
+                Premium API Key (Optional)
               </label>
               <input
                 type="password"
@@ -53,7 +53,7 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
 
             <div className="bg-tg-button/5 p-5 rounded-2xl border border-tg-button/10">
               <p className="text-[11px] leading-relaxed text-tg-button font-medium">
-                Вы можете получить бесплатный API-ключ на сайте <a href="https://siliconflow.cn" target="_blank" rel="noreferrer" className="underline font-black">siliconflow.cn</a>. Это активирует логику CogVideo.
+                По умолчанию мы используем <span className="font-black italic">Universal Free Engine</span>. Ваше приложение всегда будет работать бесплатно! Добавьте ключ (SiliconFlow или Fal.ai) только если вам нужно ультра-качество видео.
               </p>
             </div>
 

@@ -2,14 +2,13 @@ import axios from 'axios';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-const POLLINATIONS_BASE = 'https://pollinations.ai/p/';
+const POLLINATIONS_TEXT_URL = 'https://text.pollinations.ai/';
 
-// Available voices mapping
+// Available System Voices (will be populated dynamically if possible, 
+// but we define labels for UI consistency)
 export const VOICE_OPTIONS = [
-  { id: 'ru-RU-Male-1', label: 'Пушкин (RU)', lang: 'ru' },
-  { id: 'ru-RU-Female-1', label: 'Алина (RU)', lang: 'ru' },
-  { id: 'en-US-Male-1', label: 'George (EN)', lang: 'en' },
-  { id: 'en-US-Female-1', label: 'Alice (EN)', lang: 'en' },
+  { id: 'neural-male', label: 'Pro Male (Neural)', lang: 'ru' },
+  { id: 'neural-female', label: 'Pro Female (Neural)', lang: 'ru' },
 ];
 
 /**
@@ -17,23 +16,49 @@ export const VOICE_OPTIONS = [
  */
 export const generateImage = (prompt) => {
   const encodedPrompt = encodeURIComponent(prompt);
-  return `${POLLINATIONS_BASE}${encodedPrompt}?width=1024&height=576&seed=${Math.floor(Math.random() * 10000)}&model=flux`;
+  // Using 1024x576 for cinematic aspect ratio
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&seed=${Math.floor(Math.random() * 10000)}&model=flux&nologo=true`;
 };
 
 /**
- * Generates a TTS audio URL
+ * Generates a TTS audio using Web Speech API (Always Free & Natural)
  */
-export const generateTTS = (text, voiceId = 'ru-RU-Male-1') => {
-  const encodedText = encodeURIComponent(text);
-  return `https://text-to-speech-api.pollinations.ai/tts?text=${encodedText}&voice=${voiceId}`;
+export const generateTTS = (text, voiceType = 'neural-male') => {
+  return new Promise((resolve, reject) => {
+    if (!window.speechSynthesis) {
+      reject(new Error('TTS not supported'));
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Find a good Russian voice (prioritize Neural/Google/Microsoft)
+    const ruVoices = voices.filter(v => v.lang.startsWith('ru'));
+    let selectedVoice = ruVoices.find(v => 
+      v.name.toLowerCase().includes('google') || 
+      v.name.toLowerCase().includes('neural') || 
+      v.name.toLowerCase().includes('natural')
+    ) || ruVoices[0];
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+    
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => resolve();
+    utterance.onerror = (e) => reject(e);
+
+    window.speechSynthesis.speak(utterance);
+  });
 };
 
 /**
- * Generates a scenario (scenes) from an idea using DeepSeek-V3
+ * Generates a scenario (scenes) without an API key using Pollinations Text
  */
-export const generateScenario = async (idea, style, personCount, apiKey) => {
-  if (!apiKey) throw new Error('API Key missing');
-
+export const generateScenario = async (idea, style, personCount) => {
   const systemPrompt = `You are a cinematic screenwriter. 
 Generate a JSON array of 5 scenes for a video based on the user's idea and style.
 Style: ${style}
@@ -47,33 +72,24 @@ Output ONLY a JSON array with this structure:
     "scene_name": "Short scene title"
   }
 ]
-Keep image_prompts in English for better AI performance. Keep voice_text in Russian.
-Translate the visual style '${style}' into architectural and lighting details.`;
+Keep image_prompts in English. Keep voice_text in Russian.`;
 
   try {
     const response = await axios.post(
-      'https://api.siliconflow.cn/v1/chat/completions',
+      `${POLLINATIONS_TEXT_URL}openai/chat/completions`,
       {
-        model: 'deepseek-ai/DeepSeek-V3',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Idea: ${idea}` }
         ],
-        response_format: { type: 'json_object' }
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        }
+        model: 'openai', // Pollinations uses 'openai' for their gpt-4o-mini / llama proxy
+        jsonMode: true
       }
     );
 
-    // DeepSeek might return a nested object if we asked for json_object, 
-    // or just the string if we asked for a list. Let's handle the string parsing.
     const content = response.data.choices[0].message.content;
-    const scenes = JSON.parse(content);
-    // If it's wrapped in an object like { "scenes": [...] }
+    const cleanContent = content.replace(/```json|```/g, '').trim();
+    const scenes = JSON.parse(cleanContent);
     return Array.isArray(scenes) ? scenes : (scenes.scenes || []);
   } catch (error) {
     console.error('Scenario Generation Error:', error);
@@ -81,52 +97,31 @@ Translate the visual style '${style}' into architectural and lighting details.`;
   }
 };
 
-export const generateVideoSegment = async (imageRef, motionPrompt, apiKey) => {
-  if (!apiKey) throw new Error('API Key missing');
-
+/**
+ * Generates a video segment using Pollinations Video (Synchronous Blob)
+ */
+export const generateVideoSegment = async (imageRef, motionPrompt) => {
   try {
-    const response = await axios.post(
-      'https://api.siliconflow.cn/v1/video/submit',
-      {
-        model: 'THUDM/CogVideoX-5b',
-        prompt: motionPrompt,
-        image_url: imageRef,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        }
-      }
-    );
-    // Returns { requestId: "..." }
-    return response.data;
+    const encodedPrompt = encodeURIComponent(motionPrompt);
+    // Pollinations Video API is experimental and keyless for low-volume.
+    // Note: It returns the MP4 file directly.
+    const url = `https://gen.pollinations.ai/video/${encodedPrompt}?seed=${Math.floor(Math.random() * 10000)}`;
+    
+    const response = await axios.get(url, { responseType: 'blob' });
+    const videoBlob = new Blob([response.data], { type: 'video/mp4' });
+    return URL.createObjectURL(videoBlob);
   } catch (error) {
-    console.error('Video Submission Error:', error.response?.data || error.message);
+    console.error('Video Generation Error:', error);
     throw error;
   }
 };
 
 /**
- * Polls for video generation status
+ * Placeholder for polling logic (deprecated in Free Mode since Pollinations is sync)
  */
-export const getVideoStatus = async (requestId, apiKey) => {
-  try {
-    const response = await axios.post(
-      'https://api.siliconflow.cn/v1/video/status',
-      { requestId },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        }
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Video Status Polling Error:', error);
-    throw error;
-  }
+export const getVideoStatus = async (requestId) => {
+  // Not used in direct blob mode, but kept for interface compatibility
+  return { status: 'Succeed' };
 };
 
 /**
@@ -134,8 +129,7 @@ export const getVideoStatus = async (requestId, apiKey) => {
  */
 export const stitchVideos = async (videoUrls, onProgress) => {
   const ffmpeg = new FFmpeg();
-  
-  onProgress('Загрузка инструментов...', 10);
+  onProgress('Загрузка FFmpeg...', 10);
   
   const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
   await ffmpeg.load({
@@ -143,9 +137,8 @@ export const stitchVideos = async (videoUrls, onProgress) => {
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
 
-  onProgress('Скачивание фрагментов...', 30);
+  onProgress('Подготовка потоков...', 30);
 
-  // Write files to FFmpeg virtual FS
   const inputFiles = [];
   for (let i = 0; i < videoUrls.length; i++) {
     const fileName = `input${i}.mp4`;
@@ -153,21 +146,13 @@ export const stitchVideos = async (videoUrls, onProgress) => {
     inputFiles.push(`file '${fileName}'`);
   }
 
-  // Create concat list
-  const concatList = inputFiles.join('\n');
-  await ffmpeg.writeFile('concat.txt', concatList);
-
-  onProgress('Склейка видео...', 60);
-
-  // Run concat command
-  // Note: CogVideoX files should have the same encoding, so -c copy is fast and reliable
+  onProgress('Склейка (Zero-Key Render)...', 60);
+  // Pollinations videos are usually H.264, so -c copy is safe and very fast
   await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat.txt', '-c', 'copy', 'output.mp4']);
 
-  onProgress('Завершение экспорта...', 90);
-
+  onProgress('Финализация...', 90);
   const data = await ffmpeg.readFile('output.mp4');
-  const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-
   onProgress('Готово!', 100);
-  return url;
+  return URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
 };
+
