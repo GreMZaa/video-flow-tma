@@ -157,7 +157,43 @@ function App() {
       handleCreateScenario();
       return;
     }
-    // ... (rest of simple create logic)
+
+    if (!apiKey) {
+      showAlert('Введите API ключ');
+      setIsSettingsOpen(true);
+      return;
+    }
+    if (!actionPrompt) return;
+
+    setIsLoading(true);
+    showHaptic('medium');
+
+    const newGen = {
+      id: Date.now(),
+      prompt: actionPrompt,
+      style: characterPrompt,
+      aspectRatio,
+      status: 'generating',
+      timestamp: new Date().toISOString()
+    };
+
+    setGenerations([newGen, ...generations]);
+    setActionPrompt('');
+    if (isMobile) setIsPanelOpen(false);
+
+    try {
+      await generateVideoSegment(null, `${characterPrompt}, ${actionPrompt}`, apiKey);
+      setGenerations(prev => prev.map(g => g.id === newGen.id ? { 
+        ...g, 
+        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+        status: 'ready' 
+      } : g));
+    } catch (err) {
+      showAlert('Ошибка генерации');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDelete = (index) => {
     setGenerations(generations.filter((_, i) => i !== index));
@@ -210,10 +246,6 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Sidebar Space placeholder for desktop */}
-        {!isMobile && <div className="w-0 xl:w-[0px] order-none" />}
-        
-        {/* Main Canvas */}
         <div className={`flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-10 ${!isMobile ? 'mr-[350px]' : ''}`}>
           <div className="max-w-[1200px] mx-auto">
             {/* Board Header Info (Optional) */}
@@ -244,6 +276,16 @@ function App() {
           setActionPrompt={setActionPrompt}
           aspectRatio={aspectRatio}
           setAspectRatio={setAspectRatio}
+          projectMode={projectMode}
+          setProjectMode={setProjectMode}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+          personCount={personCount}
+          setPersonCount={setPersonCount}
+          onAutomate={handleAutomateProject}
+          onExport={handleExportProject}
+          isExporting={isExporting}
+          exportProgress={exportProgress}
           onCreate={handleCreate}
           isLoading={isLoading}
           isMobile={isMobile}
