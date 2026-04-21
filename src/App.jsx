@@ -276,7 +276,7 @@ function App() {
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-tighter">Debug Mode v2</span>
             <span className="text-[9px] font-mono opacity-80">
-              API: {debugInfo.version} | Exp: {debugInfo.expanded ? 'YES' : 'NO'} | H: {debugInfo.height}px
+              API: {debugInfo.version} | Exp: {debugInfo.expanded ? 'YES' : 'NO'} | H: {debugInfo.height}px | URL: {window.location.hostname.slice(0,10)}...
             </span>
           </div>
           <button 
