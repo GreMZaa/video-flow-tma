@@ -64,7 +64,9 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[9px] uppercase font-bold text-tg-hint tracking-widest opacity-60 truncate max-w-[150px]">
-            {item.status === 'generating' ? 'Построение сцены...' : (item.prompt || 'CogVideoX')}
+            {item.status === 'generating' ? 'Сценарий...' : 
+             item.status === 'generating_video' ? 'Магия видео...' : 
+             (item.prompt || 'CogVideoX')}
           </span>
           <div className="flex gap-1">
              <div className={`w-1 h-1 rounded-full ${item.imageUrl ? 'bg-green-500' : 'bg-white/10'}`} />
@@ -78,6 +80,7 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
 };
 
 const MainGrid = ({ generations, onDelete, onPlay }) => {
+  if (generations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] xl:min-h-[60vh] text-center px-6 py-12">
         <motion.div 
@@ -93,6 +96,7 @@ const MainGrid = ({ generations, onDelete, onPlay }) => {
         </p>
       </div>
     );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">

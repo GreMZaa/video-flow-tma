@@ -95,31 +95,61 @@ function App() {
     const drafts = generations.filter(g => g.status === 'draft');
     if (drafts.length === 0) return;
 
+    if (!apiKey) {
+      showAlert('Введите API ключ');
+      setIsSettingsOpen(true);
+      return;
+    }
+
     setIsLoading(true);
+    showHaptic('medium');
+
     for (const item of drafts) {
       try {
-        // 1. Set to generating
+        // 1. Set to generating (Image + TTS)
         setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, status: 'generating' } : g));
         
-        // 2. Generate Assets
+        // 2. Generate Assets (Sync)
         const imageUrl = generateImage(`${item.style}, ${item.prompt}`);
         const audioUrl = generateTTS(item.voiceText, selectedVoice);
         
         setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, imageUrl, audioUrl } : g));
 
-        // 3. Generate Video
-        await generateVideoSegment(imageUrl, item.prompt, apiKey);
+        // 3. Submit Video Task (Async)
+        setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, status: 'generating_video' } : g));
+        const { requestId } = await generateVideoSegment(imageUrl, item.prompt, apiKey);
         
-        // 4. Update to ready
+        // 4. Poll for result
+        let videoUrl = null;
+        let attempts = 0;
+        const maxAttempts = 60; // 5 min timeout
+
+        while (!videoUrl && attempts < maxAttempts) {
+          await new Promise(r => setTimeout(r, 5000)); // Poll every 5s
+          const statusResult = await getVideoStatus(requestId, apiKey);
+          
+          if (statusResult.status === 'Succeed') {
+            videoUrl = statusResult.results.videos[0].url;
+          } else if (statusResult.status === 'Failed') {
+            throw new Error('Video generation failed');
+          }
+          attempts++;
+        }
+
+        if (!videoUrl) throw new Error('Timed out');
+
+        // 5. Final update
         setGenerations(prev => prev.map(g => g.id === item.id ? { 
           ...g, 
-          videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', 
+          videoUrl, 
           status: 'ready' 
         } : g));
       } catch (err) {
         console.error('Automation error for', item.id, err);
+        setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, status: 'error' } : g));
       }
     }
+    
     setIsLoading(false);
     showHaptic('success');
   };

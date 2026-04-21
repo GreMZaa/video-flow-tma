@@ -81,17 +81,14 @@ Translate the visual style '${style}' into architectural and lighting details.`;
   }
 };
 
-/**
- * Sends a generation request to SiliconFlow
- */
 export const generateVideoSegment = async (imageRef, motionPrompt, apiKey) => {
   if (!apiKey) throw new Error('API Key missing');
 
   try {
     const response = await axios.post(
-      'https://api.siliconflow.cn/v1/video/generations',
+      'https://api.siliconflow.cn/v1/video/submit',
       {
-        model: 'THUDM/CogVideoX-5B',
+        model: 'THUDM/CogVideoX-5b',
         prompt: motionPrompt,
         image_url: imageRef,
       },
@@ -102,9 +99,32 @@ export const generateVideoSegment = async (imageRef, motionPrompt, apiKey) => {
         }
       }
     );
+    // Returns { requestId: "..." }
     return response.data;
   } catch (error) {
-    console.error('Video Generation Error:', error.response?.data || error.message);
+    console.error('Video Submission Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Polls for video generation status
+ */
+export const getVideoStatus = async (requestId, apiKey) => {
+  try {
+    const response = await axios.post(
+      'https://api.siliconflow.cn/v1/video/status',
+      { requestId },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Video Status Polling Error:', error);
     throw error;
   }
 };
