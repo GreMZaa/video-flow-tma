@@ -1,3 +1,5 @@
+import React, { useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Sparkles, Layout, X, ChevronRight, User, Users, Music, Download, Wand2 } from 'lucide-react';
 import { VOICE_OPTIONS } from '../services/api';
 
