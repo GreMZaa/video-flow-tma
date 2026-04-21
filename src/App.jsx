@@ -3,8 +3,7 @@ import { useTelegram } from './hooks/useTelegram';
 import RightPanel from './components/RightPanel';
 import MainGrid from './components/MainGrid';
 import SettingsModal from './components/SettingsModal';
-import VideoPreview from './components/VideoPreview';
-import { Settings, Share2, Crown, Layers, Search, Menu } from 'lucide-react';
+import { Settings, Share2, Crown, Layers, Search, Menu, Sparkles } from 'lucide-react';
 import { generateImage, generateVideoSegment } from './services/api';
 
 function App() {
