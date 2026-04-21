@@ -9,9 +9,22 @@ export const useTelegram = () => {
     if (tg) {
       tg.ready();
       tg.expand();
-      // Force expansion again after a short delay to handle iOS drawer behavior
-      setTimeout(() => tg.expand(), 500);
+      
+      // Disable vertical swipes to prevent accidental app minimize/collapse on iOS
+      if (tg.disableVerticalSwipes) {
+        tg.disableVerticalSwipes();
+      }
+      
+      // Enable closing confirmation to prevent accidental swipes closing the app
+      tg.enableClosingConfirmation();
+
+      // Final aggressive expand attempts
+      const intervals = [100, 300, 600, 1000].map(ms => 
+        setTimeout(() => tg.expand(), ms)
+      );
+
       setIsReady(true);
+      return () => intervals.forEach(clearTimeout);
     }
   }, []);
 
