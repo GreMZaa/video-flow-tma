@@ -1,42 +1,33 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      window.__TMA_LOG__ = [];
+      window.onloadStatus = 'pending';
+      function logTMA(msg) { 
+        console.log('[TMA]', msg); 
+        window.__TMA_LOG__.push(msg);
+      }
+    </script>
+    <script 
+      id="tg-sdk"
+      src="https://telegram.org/js/telegram-web-app.js"
+      onload="window.onloadStatus='loaded'; logTMA('SDK Loaded');"
+      onerror="window.onloadStatus='error'; logTMA('SDK Load Error');"
+    ></script>
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <script>
       (function() {
         try {
-          if (window.Telegram && window.Telegram.WebApp) {
-            var tw = window.Telegram.WebApp;
-            tw.ready();
-            tw.expand();
-            
-            // Show version in loader for debugging
-            setTimeout(function() {
-              var versionEl = document.getElementById('api-version');
-              if (versionEl) versionEl.innerText = 'Bot API v' + tw.version;
-            }, 100);
-
-            if (tw.disableVerticalSwipes) {
-              tw.disableVerticalSwipes();
-            }
-            
-            // Aggressive retry logic for expansion
-            var count = 0;
-            var interval = setInterval(function() {
-              if (tw.isExpanded) {
-                clearInterval(interval);
-                return;
-              }
+          var check = setInterval(function() {
+            if (window.Telegram && window.Telegram.WebApp) {
+              var tw = window.Telegram.WebApp;
+              tw.ready();
               tw.expand();
-              count++;
-              if (count > 20) clearInterval(interval);
-            }, 300);
-          }
+              logTMA('SDK Init Success');
+              clearInterval(check);
+            }
+          }, 100);
+          setTimeout(function() { clearInterval(check); }, 5000);
         } catch (e) {
-          console.error('TMA Init Error', e);
+          logTMA('Init Error: ' + e.message);
         }
       })();
     </script>

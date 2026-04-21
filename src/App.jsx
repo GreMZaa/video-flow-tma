@@ -30,31 +30,37 @@ function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeVideo, setActiveVideo] = useState(null); // For preview
   const [showDebug, setShowDebug] = useState(true);
-  const [debugInfo, setDebugInfo] = useState({ version: 'loading...', expanded: false, height: 0 });
+  const [debugInfo, setDebugInfo] = useState({ 
+    version: '...', 
+    expanded: false, 
+    height: 0,
+    sdk: 'pending',
+    ua: navigator.userAgent.slice(0, 15) + '...'
+  });
 
   // Debug monitoring
   useEffect(() => {
-    if (tg) {
+    const updateDebug = () => {
       setDebugInfo({
-        version: tg.version || 'v?',
-        expanded: tg.isExpanded || false,
-        height: tg.viewportHeight || 0
+        version: tg?.version || 'v?',
+        expanded: tg?.isExpanded || false,
+        height: tg?.viewportHeight || 0,
+        sdk: window.onloadStatus || '?',
+        ua: navigator.userAgent.includes('Telegram') ? 'TG-APP' : 'BROWSER'
       });
+    };
 
-      const handleViewport = () => {
-        setDebugInfo({
-          version: tg.version || 'v?',
-          expanded: tg.isExpanded || false,
-          height: tg.viewportHeight || 0
-        });
-      };
-      tg.onEvent('viewportChanged', handleViewport);
-      
-      const timer = setTimeout(() => setShowDebug(false), 20000); // Hide after 20s
+    if (tg) {
+      updateDebug();
+      tg.onEvent('viewportChanged', updateDebug);
+      const timer = setTimeout(() => setShowDebug(false), 30000); // 30s
       return () => {
-        tg.offEvent('viewportChanged', handleViewport);
+        tg.offEvent('viewportChanged', updateDebug);
         clearTimeout(timer);
       };
+    } else {
+      const itv = setInterval(updateDebug, 500);
+      return () => clearInterval(itv);
     }
   }, [tg]);
 
@@ -275,8 +281,8 @@ function App() {
         <div className="debug-banner z-[999] bg-red-600/90 backdrop-blur-md px-4 py-2 flex items-center justify-between border-b border-white/20">
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-tighter">Debug Mode v2</span>
-            <span className="text-[9px] font-mono opacity-80">
-              API: {debugInfo.version} | Exp: {debugInfo.expanded ? 'YES' : 'NO'} | H: {debugInfo.height}px | URL: {window.location.hostname.slice(0,10)}...
+            <span className="text-[9px] font-mono opacity-80 leading-tight">
+              API:{debugInfo.version} | EXP:{debugInfo.expanded ? 'Y' : 'N'} | H:{debugInfo.height} | SDK:{debugInfo.sdk} | {debugInfo.ua}
             </span>
           </div>
           <button 
