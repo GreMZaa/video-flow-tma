@@ -4,15 +4,16 @@ import { Play, Trash2, CheckCircle2, Loader2, MessageSquare, Wand2 } from 'lucid
 import { useTelegram } from '../hooks/useTelegram';
 
 const STATUS_LABELS = {
+  thinking: 'Продумываю сценарий...',
   generating: 'Генерирую...',
-  generating_image: 'Рисую изображение...',
-  animating: 'Оживляю сцену...',
+  generating_image: 'Создаю изображение...',
+  animating: 'Оживляю сцену (SiliconFlow)...',
   voiceover: 'Записываю озвучку...',
   queued: 'В очереди...',
   error: '⚠ Ошибка генерации',
 };
 
-const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) => {
+const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, onRunGeneration, onClearDrafts }) => {
   const scrollRef = useRef(null);
   const { showHaptic } = useTelegram();
 
@@ -74,18 +75,37 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
           <div key={gen.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 10px', marginBottom: 6 }}>
 
             {/* Outgoing user bubble (the prompt) */}
-            {gen.status !== 'draft' && gen.prompt && (
+            {gen.prompt && (gen.status === 'thinking' || (gen.status !== 'draft' && !gen.parentPrompt)) && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="tg-bubble tg-bubble-out"
+                style={{ marginBottom: gen.status === 'thinking' ? 4 : 0 }}
               >
-                <p style={{ margin: 0, paddingRight: 48, fontSize: 15, fontWeight: 400 }}>{gen.prompt}</p>
+                <p style={{ margin: 0, paddingRight: 48, fontSize: 16, fontWeight: 400, color: '#fff' }}>{gen.prompt}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 1 }}>
-                  <span style={{ fontSize: 11, opacity: 0.5, fontWeight: 500 }}>
+                  <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500, color: '#fff' }}>
                     {new Date(gen.id).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <CheckCircle2 size={12} style={{ opacity: 0.5 }} />
+                  <CheckCircle2 size={12} style={{ opacity: 0.6, color: '#fff' }} />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Special case: If it's the first draft of a set, show the parent prompt above it */}
+            {gen.status === 'draft' && gen.parentPrompt && (idx === 0 || generations[idx-1].parentPrompt !== gen.parentPrompt) && (
+               <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="tg-bubble tg-bubble-out"
+                style={{ marginBottom: 4 }}
+              >
+                <p style={{ margin: 0, paddingRight: 48, fontSize: 16, fontWeight: 400, color: '#fff' }}>{gen.parentPrompt}</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 1 }}>
+                  <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500, color: '#fff' }}>
+                    {new Date(gen.id).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <CheckCircle2 size={12} style={{ opacity: 0.6, color: '#fff' }} />
                 </div>
               </motion.div>
             )}
@@ -116,12 +136,14 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
                       src={gen.videoUrl}
                       alt="Generated frame"
                       className="hover-zoom"
+                      crossOrigin="anonymous"
                       style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
                     <video
                       src={gen.videoUrl}
                       className="hover-zoom"
+                      crossOrigin="anonymous"
                       style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
                       muted loop playsInline autoPlay
                     />
@@ -151,7 +173,7 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
                     borderRadius: 8, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4
                   }}>
                     <span style={{ fontSize: 10, color: 'white', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {gen.isMotion ? 'Frame' : 'Video'}
+                      {gen.isMotion ? 'КАДР' : 'ВИДЕО'}
                     </span>
                   </div>
                   {/* Timestamp overlay */}
@@ -167,90 +189,94 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
                 </div>
               )}
 
-              {/* Draft: editable scene card */}
+              {/* Draft: premium editable card */}
               {gen.status === 'draft' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 2px' }}>
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.1)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tg-accent)' }} />
-                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--tg-accent)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                        {gen.sceneName || `Сцена ${idx + 1}`}
+                <div className="tg-bubble-draft" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ 
+                        width: 32, height: 32, borderRadius: 10, 
+                        background: 'linear-gradient(135deg, var(--tg-accent) 0%, #00c6ff 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(0,122,255,0.3)'
+                      }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{idx + 1}</span>
+                      </div>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>
+                        {gen.sceneName || `Кадр ${idx + 1}`}
                       </span>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteVideo(idx); showHaptic('warning'); }}
                       className="ios-btn"
-                      style={{ background: 'rgba(255,59,48,0.1)', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff3b30' }}
+                      style={{ 
+                        width: 32, height: 32, borderRadius: '50%', 
+                        background: 'rgba(255,59,48,0.1)', border: 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff3b30' 
+                      }}
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ position: 'relative' }}>
-                      <label style={{ display: 'block', fontSize: 10, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6, letterSpacing: 0.5, opacity: 0.8 }}>Визуальное описание</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, border: '0.5px solid rgba(255,255,255,0.05)' }}>
+                      <label style={{ display: 'block', fontSize: 11, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>Визуальный промпт</label>
                       <textarea
                         value={gen.prompt || ''}
                         onChange={(e) => onUpdateVideo?.(gen.id, { prompt: e.target.value })}
                         rows={2}
-                        placeholder="Опишите, что происходит в кадре..."
                         style={{
-                          width: '100%', background: 'rgba(0,0,0,0.2)',
-                          border: '0.5px solid rgba(255,255,255,0.1)',
-                          borderRadius: 12, padding: '10px 12px',
-                          color: 'white', fontSize: 14, outline: 'none',
-                          resize: 'none', fontFamily: 'inherit', lineHeight: 1.4
+                          width: '100%', background: 'none', border: 'none',
+                          color: 'white', fontSize: 15, outline: 'none',
+                          resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, padding: 0
                         }}
-                        onFocus={(e) => e.target.parentElement.style.borderColor = 'var(--tg-accent)'}
                       />
                     </div>
-                    {gen.voiceText !== undefined && (
-                      <div style={{ position: 'relative' }}>
-                        <label style={{ display: 'block', fontSize: 10, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4, letterSpacing: 0.5 }}>Текст озвучки</label>
-                        <textarea
-                          value={gen.voiceText || ''}
-                          onChange={(e) => onUpdateVideo?.(gen.id, { voiceText: e.target.value })}
-                          rows={2}
-                          style={{
-                            width: '100%', background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12,
-                            padding: '10px 12px', color: 'white', fontSize: 14, resize: 'none',
-                            lineHeight: '1.4', outline: 'none'
-                          }}
-                        />
-                      </div>
-                    )}
+                    
+                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, border: '0.5px solid rgba(255,255,255,0.05)' }}>
+                      <label style={{ display: 'block', fontSize: 11, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>Текст диктора</label>
+                      <textarea
+                        value={gen.voiceText || ''}
+                        onChange={(e) => onUpdateVideo?.(gen.id, { voiceText: e.target.value })}
+                        rows={2}
+                        style={{
+                          width: '100%', background: 'none', border: 'none',
+                          color: 'white', fontSize: 15, outline: 'none',
+                          resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, padding: 0
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Loading/Processing state */}
+              {/* Loading/Processing/Thinking state */}
               {!['ready', 'draft'].includes(gen.status) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 4px' }}>
                   {gen.status === 'error' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,59,48,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <Trash2 size={16} color="#ff3b30" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,59,48,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Trash2 size={18} color="#ff3b30" />
                       </div>
-                      <span style={{ fontSize: 14, color: '#ff453a', fontWeight: 600 }}>{STATUS_LABELS.error}</span>
+                      <div>
+                        <div style={{ fontSize: 15, color: '#ff453a', fontWeight: 700 }}>{STATUS_LABELS.error}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,69,58,0.8)' }}>{gen.error || 'Проверьте API ключ SiliconFlow'}</div>
+                      </div>
                     </div>
                   ) : (
                     <>
                       <div style={{ position: 'relative' }}>
-                        <Loader2 size={28} color="var(--tg-accent)" className="animate-spin" />
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--tg-accent)' }} />
-                        </div>
+                        <Loader2 size={32} color="var(--tg-accent)" className="animate-spin" />
                       </div>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.3, color: 'white' }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.3, color: 'white' }}>
                           {STATUS_LABELS[gen.status] || 'Обработка...'}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--tg-hint)', fontWeight: 500, marginTop: 1 }}>
-                          {gen.status === 'animating' ? 'Работает SiliconFlow AI...' : 'Это займет немного времени'}
+                        <div style={{ fontSize: 13, color: 'var(--tg-hint)', fontWeight: 500, marginTop: 2 }}>
+                          {gen.status === 'thinking' ? 'Создаю структуру видео...' : 
+                           gen.status === 'animating' ? 'Работает SiliconFlow AI ( Wan-AI )...' : 
+                           'Пожалуйста, подождите...'}
                         </div>
                       </div>
                     </>
@@ -261,6 +287,78 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
           </div>
         ))}
       </AnimatePresence>
+      
+      {/* Scenario confirmation area */}
+      {generations.some(g => g.status === 'draft') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            background: 'rgba(0,122,255,0.03)',
+            borderTop: '0.5px solid rgba(0,122,255,0.1)',
+            borderBottom: '0.5px solid rgba(0,122,255,0.1)',
+            marginTop: 10,
+            marginBottom: 20
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: 6, borderRadius: 8, background: 'rgba(0,122,255,0.1)' }}>
+              <MessageSquare size={16} color="var(--tg-accent)" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>Сценарий готов</div>
+              <div style={{ fontSize: 12, color: 'var(--tg-hint)' }}>Проверьте кадры выше и запустите генерацию</div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => onRunGeneration?.()}
+              className="ios-btn"
+              style={{
+                flex: 1,
+                background: 'var(--tg-accent)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 14,
+                height: 48,
+                fontSize: 16,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: '0 8px 24px rgba(0,122,255,0.25)',
+              }}
+            >
+              <Play size={18} fill="currentColor" />
+              Начать генерацию
+            </button>
+            <button
+              onClick={() => onClearDrafts?.()}
+              className="ios-btn"
+              style={{
+                width: 48,
+                height: 48,
+                background: 'rgba(255,59,48,0.1)',
+                border: 'none',
+                borderRadius: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ff3b30'
+              }}
+              title="Отклонить сценарий"
+            >
+              <Trash2 size={20} />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Bottom padding */}
       <div style={{ height: 8 }} />

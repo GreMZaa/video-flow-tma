@@ -36,7 +36,7 @@ function App() {
   } = useVideoFlow(activeProject, updateActiveProject, showHaptic, showAlert, apiKey);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [view, setView] = useState('list'); // 'list' | 'chat'
-  const [projectMode, setProjectMode] = useState('creative');
+  const [projectMode, setProjectMode] = useState('workflow');
   const [personCount, setPersonCount] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -71,16 +71,26 @@ function App() {
   // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!actionPrompt.trim() || isLoading) return;
+    
     const success = projectMode === 'workflow'
       ? await handleCreateScenario(actionPrompt, personCount)
       : await handleSingleCreate(actionPrompt, aspectRatio);
-    if (success) setActionPrompt('');
+      
+    if (success) {
+      setActionPrompt('');
+    }
   };
 
   const handleDeleteFrame = (index) => {
     if (!activeProject) return;
     updateActiveProject({ generations: activeProject.generations.filter((_, i) => i !== index) });
     showHaptic('light');
+  };
+
+  const handleClearDrafts = () => {
+    if (!activeProject) return;
+    updateActiveProject({ generations: activeProject.generations.filter(g => g.status !== 'draft') });
+    showHaptic('warning');
   };
 
   const handleUpdateVideo = (id, updates) => {
@@ -282,6 +292,8 @@ function App() {
                   onSelectVideo={setActiveVideo}
                   onDeleteVideo={handleDeleteFrame}
                   onUpdateVideo={handleUpdateVideo}
+                  onRunGeneration={() => handleAutomateProject(selectedVoice)}
+                  onClearDrafts={handleClearDrafts}
                 />
                 <NativeInput
                   value={actionPrompt}
@@ -353,9 +365,9 @@ function App() {
             }}
           >
             {activeVideo.isMotion ? (
-              <img src={activeVideo.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="frame" />
+              <img src={activeVideo.videoUrl} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="frame" />
             ) : (
-              <video src={activeVideo.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} controls autoPlay />
+              <video src={activeVideo.videoUrl} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain' }} controls autoPlay />
             )}
             <button
               onClick={() => setActiveVideo(null)}

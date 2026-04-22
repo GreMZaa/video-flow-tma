@@ -317,7 +317,7 @@ const ProjectList = ({
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {isProcessing ? (
                             <span style={{ fontSize: 15, color: 'var(--tg-accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              генерирует
+                              печатает
                               <span className="typing-container">
                                 <span className="typing-dot" />
                                 <span className="typing-dot" />

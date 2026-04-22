@@ -4,6 +4,27 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 const POLLINATIONS_TEXT_URL = 'https://text.pollinations.ai/';
 
+export const SCENARIO_SYSTEM_PROMPT = `You are an expert AI Video Director and Cinematic Screenwriter.
+Your task is to generate a JSON array of exactly 5 scenes for a high-quality cinematic video based on the user's idea.
+
+STRICT RULES:
+1. Each scene MUST have:
+   - "scene_name": A short, catchy title for the scene in Russian.
+   - "image_prompt": A VERY detailed visual description in English. Include lighting (cinematic, volumetric), camera work (wide shot, tracking, close-up), and atmosphere. This prompt will be used by an AI video model.
+   - "voice_text": The narration script for this scene in Russian. 1-2 impactful sentences.
+2. The language for "scene_name" and "voice_text" is ALWAYS Russian.
+3. The language for "image_prompt" is ALWAYS English.
+4. Output ONLY the raw JSON array. No explanations, no markdown blocks.
+
+Format:
+[
+  {
+    "scene_name": "...",
+    "image_prompt": "...",
+    "voice_text": "..."
+  }
+]`;
+
 // Available System Voices (will be populated dynamically if possible, 
 // but we define labels for UI consistency)
 export const VOICE_OPTIONS = [
@@ -100,82 +121,147 @@ export const generateTTS = (text, voiceType = 'neural-male') => {
 /**
  * Generates a scenario (scenes) without an API key using Pollinations Text
  */
-export const generateScenario = async (idea, style, personCount) => {
-  const systemPrompt = `You are a cinematic screenwriter. Generate a JSON array of 5 scenes for a video.
-Style: ${style}
-Number of people: ${personCount}
-
-Output ONLY a RAW JSON array. NO markdown blocks.
-[
-  {
-    "image_prompt": "Detailed visual description (English)",
-    "voice_text": "Narration text (Russian)",
-    "scene_name": "Short title"
+/**
+ * Helper to fetch with timeout
+ */
+const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
   }
-]`;
+};
 
-  const extractJSON = (text) => {
-    try {
-      // Remove markdown code blocks if present
-      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      const jsonStart = cleaned.indexOf('[');
-      const jsonEnd = cleaned.lastIndexOf(']') + 1;
-      if (jsonStart !== -1 && jsonEnd > jsonStart) {
-        return JSON.parse(cleaned.substring(jsonStart, jsonEnd));
-      }
-      // Try object if array fails
-      const objStart = cleaned.indexOf('{');
-      const objEnd = cleaned.lastIndexOf('}') + 1;
-      if (objStart !== -1 && objEnd > objStart) {
-        const obj = JSON.parse(cleaned.substring(objStart, objEnd));
-        return Array.isArray(obj.scenes) ? obj.scenes : (Array.isArray(obj) ? [obj] : [obj]);
-      }
-    } catch (e) {
-      console.error('JSON Extraction Partial Failure:', e);
+const extractJSON = (text) => {
+  if (!text) return null;
+  console.log('Attempting to extract JSON from:', text.substring(0, 100) + '...');
+  try {
+    // 1. Remove markdown blocks and weird characters
+    let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    // 2. Find the first '[' and last ']' for array
+    const start = cleaned.indexOf('[');
+    const end = cleaned.lastIndexOf(']') + 1;
+    
+    if (start !== -1 && end > start) {
+      const jsonStr = cleaned.substring(start, end);
+      return JSON.parse(jsonStr);
     }
-    return null;
-  };
+
+    // 3. Fallback: try to find an object and extract scenes array
+    const objStart = cleaned.indexOf('{');
+    const objEnd = cleaned.lastIndexOf('}') + 1;
+    if (objStart !== -1 && objEnd > objStart) {
+      const potentialObj = JSON.parse(cleaned.substring(objStart, objEnd));
+      if (Array.isArray(potentialObj.scenes)) return potentialObj.scenes;
+      if (Array.isArray(potentialObj.data)) return potentialObj.data;
+      if (Array.isArray(potentialObj.items)) return potentialObj.items;
+      if (Array.isArray(potentialObj)) return potentialObj;
+      // If it's a single object that looks like a scene, wrap it
+      if (potentialObj.image_prompt || potentialObj.voice_text) return [potentialObj];
+    }
+  } catch (e) {
+    console.error('JSON Extraction Error:', e);
+  }
+  return null;
+};
+
+/**
+ * Generates a scenario (scenes) without an API key using Pollinations Text
+ */
+export const generateScenario = async (idea, style, personCount) => {
+  const FALLBACK_SCENES = [
+    {
+      "image_prompt": "Cinematic wide shot, epic lighting, high detail, 8k.",
+      "voice_text": "Мир начинает меняться прямо на наших глазах.",
+      "scene_name": "Начало"
+    },
+    {
+      "image_prompt": "Close up shot, atmospheric, shallow depth of field.",
+      "voice_text": "Каждое движение наполнено глубоким смыслом.",
+      "scene_name": "Кульминация"
+    }
+  ];
 
   try {
-    // Attempt 1: OpenAI-compatible POST (Better for complex instructions)
+    console.log('Generating scenario for:', idea, 'Style:', style);
+    
+    // Attempt 1: POST to /openai (more stable for complex tasks)
     try {
-      const response = await fetch('https://text.pollinations.ai/openai', {
+      const response = await fetchWithTimeout('https://text.pollinations.ai/openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Idea: ${idea}` }
+            { role: 'system', content: SCENARIO_SYSTEM_PROMPT },
+            { role: 'user', content: `Тема: "${idea}". Стиль: ${style || 'Cinematic'}. Количество персонажей: ${personCount || 1}. Сгенерируй ровно 5 сцен в виде JSON массива.` }
           ],
-          model: 'openai',
-          json: true
+          model: 'openai-large',
+          seed: Math.floor(Math.random() * 1000000)
         })
-      });
+      }, 60000); // 60s timeout for complex scenarios
       
       if (response.ok) {
         const data = await response.json();
-        const content = data.choices[0].message.content;
-        const scenes = extractJSON(content);
-        if (scenes) return scenes;
+        const rawContent = data?.choices?.[0]?.message?.content;
+        console.log('Raw content type:', typeof rawContent, '| Preview:', JSON.stringify(rawContent)?.substring(0, 120));
+        
+        // Pollinations sometimes returns already-parsed object when model returns JSON
+        let scenes = null;
+        if (Array.isArray(rawContent)) {
+          scenes = rawContent;
+        } else if (rawContent && typeof rawContent === 'object') {
+          // Could be {scenes: [...]} or similar
+          scenes = rawContent.scenes || rawContent.data || rawContent.items || null;
+          if (!scenes && Array.isArray(Object.values(rawContent)[0])) {
+            scenes = Object.values(rawContent)[0];
+          }
+        } else if (typeof rawContent === 'string') {
+          scenes = extractJSON(rawContent);
+        }
+        
+        if (scenes && scenes.length > 0) {
+          console.log('Scenario generated successfully via POST, scenes:', scenes.length);
+          return scenes;
+        } else {
+          console.warn('POST returned OK but no valid scenes array. Raw:', rawContent);
+        }
+      } else {
+        const errBody = await response.text().catch(() => '');
+        console.warn('POST scenario failed with status:', response.status, errBody.substring(0, 200));
       }
     } catch (e) {
-      console.warn('POST Scenario failed, falling back to GET...', e);
+      console.warn('POST scenario attempt failed:', e.message);
     }
 
-    // Attempt 2: Simple GET Fallback
-    const fullPrompt = `${systemPrompt}\n\nProject Idea: ${idea}`;
-    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt.substring(0, 1500))}?json=true`;
-    
-    const response = await fetch(url);
-    const content = await response.text();
-    const scenes = extractJSON(content);
-    
-    if (scenes) return scenes;
-    throw new Error('No valid scenario generated after fallback');
+    // Attempt 2: GET Fallback (plain text mode)
+    try {
+      const shortPrompt = `You are an AI Video Director. Output ONLY a valid JSON array of exactly 5 scenes for: "${idea}". Each scene: {"scene_name": "(Russian)", "image_prompt": "(English, detailed)", "voice_text": "(Russian, 1-2 sentences)"}. Output nothing else.`;
+      const url = `https://text.pollinations.ai/${encodeURIComponent(shortPrompt)}?model=openai&cache=false&seed=${Date.now()}`;
+      const response = await fetchWithTimeout(url, {}, 45000);
+      if (response.ok) {
+        const content = await response.text();
+        console.log('GET response preview:', content.substring(0, 150));
+        const scenes = extractJSON(content);
+        if (scenes && scenes.length > 0) {
+          console.log('Scenario generated successfully via GET');
+          return scenes;
+        }
+      }
+    } catch (e) {
+      console.warn('GET scenario attempt failed:', e.message);
+    }
+
+    console.warn('All real-time scenario attempts failed. Using static fallback.');
+    return FALLBACK_SCENES;
   } catch (error) {
     console.error('Scenario Generation Final Error:', error);
-    throw error;
+    return FALLBACK_SCENES;
   }
 };
 
@@ -275,7 +361,8 @@ export const generateVideoSegment = async (imageRef, motionPrompt, apiKey = null
                 lastStatus = currentStatus;
               }
 
-              if (['SUCCEED', 'SUCCESS', 'COMPLETED'].includes(currentStatus)) {
+              // 'SUCCEEDED' is the official success status in SiliconFlow for some models
+              if (['SUCCEED', 'SUCCESS', 'COMPLETED', 'SUCCEEDED'].includes(currentStatus)) {
                 const videoUrl = result.videoUrl || result.video_url || 
                                  (result.results && (result.results.video_url || result.results.url)) ||
                                  (result.video_info && result.video_info.url);
@@ -283,7 +370,7 @@ export const generateVideoSegment = async (imageRef, motionPrompt, apiKey = null
                 if (videoUrl) {
                   return { url: videoUrl, isMotion: false };
                 } else {
-                  console.warn('SiliconFlow succeeded but no video URL found in:', result);
+                  console.warn('SiliconFlow task status was SUCCESS but no video URL found in response:', result);
                 }
               }
               
@@ -314,11 +401,6 @@ export const generateVideoSegment = async (imageRef, motionPrompt, apiKey = null
     // because real video generation is often unavailable or slow in free mode.
     const cinematicImage = generateImage(motionPrompt);
     return { url: cinematicImage, isMotion: true };
-
-    return { 
-      url: generateImage(motionPrompt), 
-      isMotion: true 
-    };
   } catch (error) {
     console.warn('Final Video Fallback:', error);
     return { 

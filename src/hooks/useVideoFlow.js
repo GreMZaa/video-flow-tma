@@ -8,21 +8,54 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
 
   const handleCreateScenario = async (actionPrompt, personCount) => {
     if (!activeProject) return;
+    
+    // Immediately add a 'thinking' placeholder to show user prompt and bot typing
+    const tempId = Date.now();
+    updateActiveProject(p => ({
+      generations: [...p.generations, {
+        id: tempId,
+        prompt: actionPrompt,
+        status: 'thinking',
+        timestamp: new Date().toISOString()
+      }]
+    }));
+
     setIsLoading(true);
+    console.log('useVideoFlow: Starting scenario generation for:', actionPrompt);
     try {
       const scenes = await generateScenario(actionPrompt, activeProject.characterPrompt, personCount);
+      console.log('useVideoFlow: Received scenes:', scenes?.length);
+      
+      if (!scenes || scenes.length === 0) {
+        throw new Error('Не удалось сгенерировать сцены. Попробуйте другой запрос.');
+      }
+
       const newScenes = scenes.map((s, idx) => ({
-        id: Date.now() + idx,
-        prompt: s.image_prompt,
-        voiceText: s.voice_text,
+        id: Date.now() + idx + 1,
+        prompt: s.image_prompt || 'cinematic view',
+        voiceText: s.voice_text || '',
         sceneName: s.scene_name || `Сцена ${idx + 1}`,
         style: activeProject.characterPrompt,
-        status: 'draft'
+        status: 'draft',
+        parentPrompt: actionPrompt // Keep track of the original prompt
       }));
-      updateActiveProject({ generations: [...activeProject.generations, ...newScenes] });
+      
+      console.log('useVideoFlow: Replacing thinking with drafts');
+      // Replace the 'thinking' item with actual drafts
+      updateActiveProject(p => ({
+        generations: [
+          ...p.generations.filter(g => g.id !== tempId),
+          ...newScenes
+        ]
+      }));
       return true;
     } catch (err) {
-      showAlert(`Ошибка сценария: ${err.message}`);
+      console.error('useVideoFlow: Scenario error:', err);
+      // Set the placeholder to error status
+      updateActiveProject(p => ({
+        generations: p.generations.map(g => g.id === tempId ? { ...g, status: 'error', error: err.message } : g)
+      }));
+      showAlert(`Ошибка: ${err.message}`);
       return false;
     } finally {
       setIsLoading(false);

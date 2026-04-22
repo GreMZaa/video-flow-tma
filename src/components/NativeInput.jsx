@@ -84,7 +84,7 @@ const NativeInput = ({
                 boxShadow: '0 4px 12px rgba(0,122,255,0.3)',
               }}
             >
-              <Play size={12} fill="currentColor" /> Создать все
+              <Play size={12} fill="currentColor" /> Начать генерацию
             </motion.button>
           )}
           {showExportButton && (
@@ -137,7 +137,7 @@ const NativeInput = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === 'workflow' ? 'Напишите сценарий...' : 'Сообщение'}
+            placeholder={mode === 'workflow' ? 'Опишите идею для видео...' : 'Опишите кадр...'}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: 'white', fontSize: 17, lineHeight: '22px',
