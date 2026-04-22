@@ -30,14 +30,7 @@ export const useTelegram = () => {
         if (currentTg.setBackgroundColor) currentTg.setBackgroundColor('#050505');
       } catch (e) { /* no-op */ }
 
-      // Re-expand if shrunk (e.g. keyboard dismissed)
-      const handleViewport = () => {
-        if (!currentTg.isExpanded) currentTg.expand();
-      };
-      currentTg.onEvent('viewportChanged', handleViewport);
       setIsReady(true);
-
-      return () => currentTg.offEvent('viewportChanged', handleViewport);
     };
 
     if (!tg) {

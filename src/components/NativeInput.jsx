@@ -1,7 +1,14 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Wand2, Smile, Mic, Play, Download, Loader2 } from 'lucide-react';
 
+/**
+ * NativeInput — fixed-position input bar that always stays above the keyboard.
+ *
+ * Strategy: use `position: fixed` anchored to the VISUAL viewport bottom.
+ * We listen to `window.visualViewport.resize` and shift `bottom` so the bar
+ * rides up together with the keyboard on iOS Telegram Mini App.
+ */
 const NativeInput = ({
   value,
   onChange,
@@ -14,9 +21,54 @@ const NativeInput = ({
   hasDrafts,
   hasReadyVideos,
   isExporting,
+  // Height callback so parent (ChatFlow) can add matching padding-bottom
+  onHeightChange,
 }) => {
   const textareaRef = useRef(null);
-  const wrapperRef = useRef(null);
+  const barRef = useRef(null);
+  const [bottomOffset, setBottomOffset] = useState(0);
+
+  // ── Visual-viewport keyboard tracking ──────────────────────────────────────
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      // How far the bottom of the visual viewport is from the layout bottom
+      const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+      setBottomOffset(Math.max(0, Math.round(offsetFromBottom)));
+    };
+
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  // Notify parent of bar height so ChatFlow adds padding-bottom
+  useEffect(() => {
+    if (!barRef.current || !onHeightChange) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        onHeightChange(entry.contentRect.height + bottomOffset);
+      }
+    });
+    ro.observe(barRef.current);
+    return () => ro.disconnect();
+  }, [bottomOffset, onHeightChange]);
+
+  // ── Textarea auto-height ────────────────────────────────────────────────────
+  const adjustHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    }
+  };
+  useEffect(() => { adjustHeight(); }, [value]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -25,40 +77,26 @@ const NativeInput = ({
     }
   };
 
-  const adjustHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-    }
-  };
-
-  React.useEffect(() => { adjustHeight(); }, [value]);
-
-  // When keyboard appears on mobile the visual viewport shrinks.
-  // Scroll the input wrapper into view so it isn't hidden under the keyboard.
-  const handleFocus = () => {
-    setTimeout(() => {
-      wrapperRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 300);
-  };
-
   const canSend = value.trim().length > 0 && !isLoading;
   const showRunButton = hasDrafts && !value.trim() && !isLoading && !isExporting;
   const showExportButton = hasReadyVideos && !hasDrafts && !value.trim() && !isExporting;
 
   return (
     <div
-      ref={wrapperRef}
+      ref={barRef}
       style={{
-        flexShrink: 0,
-        background: 'rgba(28, 28, 30, 0.85)',
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: bottomOffset,
+        zIndex: 200,
+        background: 'rgba(14, 22, 33, 0.97)',
         backdropFilter: 'blur(30px) saturate(180%)',
         WebkitBackdropFilter: 'blur(30px) saturate(180%)',
         borderTop: '0.5px solid rgba(255, 255, 255, 0.08)',
-        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+        paddingBottom: bottomOffset > 0 ? 8 : 'env(safe-area-inset-bottom, 8px)',
         paddingTop: 8,
-        zIndex: 100,
+        transition: 'bottom 0.08s linear',
       }}
     >
       {/* Mode Indicator & Action Row */}
@@ -149,7 +187,6 @@ const NativeInput = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
             placeholder={mode === 'workflow' ? 'Опишите идею для видео...' : 'Опишите кадр...'}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
