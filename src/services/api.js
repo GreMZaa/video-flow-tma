@@ -59,10 +59,9 @@ export const generateTTS = (text, voiceType = 'neural-male') => {
  * Generates a scenario (scenes) without an API key using Pollinations Text
  */
 export const generateScenario = async (idea, style, personCount) => {
-  const systemPrompt = `You are a cinematic screenwriter. 
-Generate a JSON array of 5 scenes for a video based on the user's idea and style.
+  const systemPrompt = `You are a cinematic screenwriter. Generate a JSON array of 5 scenes for a video based on the user's idea and style.
 Style: ${style}
-Number of people in frame: ${personCount}
+Number of people: ${personCount}
 
 Output ONLY a RAW JSON array. NO markdown blocks.
 [
@@ -74,30 +73,32 @@ Output ONLY a RAW JSON array. NO markdown blocks.
 ]`;
 
   try {
-    const response = await axios.post(
-      'https://text.pollinations.ai/openai',
-      {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Idea: ${idea}` }
-        ],
-        model: 'openai', 
-        json: true 
-      }
-    );
-
-    let content = response.data.choices[0].message.content;
+    // Using GET with fetch for maximum compatibility in TMA environment
+    const fullPrompt = `Idea: ${idea}`;
+    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?system=${encodeURIComponent(systemPrompt)}&json=true&seed=${Math.floor(Math.random() * 10000)}`;
     
-    // Safety: ensure it's a string before calling replace
-    if (typeof content !== 'string') {
-      content = JSON.stringify(content);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    let content = await response.text();
+    
+    // Aggressive parsing: extract everything between first [ and last ]
+    const jsonStart = content.indexOf('[');
+    const jsonEnd = content.lastIndexOf(']') + 1;
+    
+    if (jsonStart === -1 || jsonEnd === 0) {
+      // Fallback for non-array responses
+      const objStart = content.indexOf('{');
+      const objEnd = content.lastIndexOf('}') + 1;
+      if (objStart !== -1) {
+        const obj = JSON.parse(content.substring(objStart, objEnd));
+        return Array.isArray(obj.scenes) ? obj.scenes : (Array.isArray(obj) ? [obj] : []);
+      }
+      throw new Error('No valid JSON found in response');
     }
 
-    // Robust parsing: extract array if AI wrapped it in text
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    const cleanContent = jsonMatch ? jsonMatch[0] : content;
-    
-    const scenes = JSON.parse(cleanContent.replace(/```json|```/g, '').trim());
+    const cleanContent = content.substring(jsonStart, jsonEnd);
+    const scenes = JSON.parse(cleanContent);
     return Array.isArray(scenes) ? scenes : (scenes.scenes || []);
   } catch (error) {
     console.error('Scenario Generation Error:', error);
@@ -111,12 +112,13 @@ Output ONLY a RAW JSON array. NO markdown blocks.
 export const generateVideoSegment = async (imageRef, motionPrompt) => {
   try {
     const encodedPrompt = encodeURIComponent(motionPrompt);
-    // Pollinations Video API is experimental and keyless for low-volume.
-    // Note: It returns the MP4 file directly.
-    const url = `https://gen.pollinations.ai/video/${encodedPrompt}?seed=${Math.floor(Math.random() * 10000)}`;
+    // Pollinations Video API using p-video (Wan-based)
+    const url = `https://gen.pollinations.ai/video/${encodedPrompt}?seed=${Math.floor(Math.random() * 10000)}&model=p-video`;
     
-    const response = await axios.get(url, { responseType: 'blob' });
-    const videoBlob = new Blob([response.data], { type: 'video/mp4' });
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Video gen failed: ${response.status}`);
+    
+    const videoBlob = await response.blob();
     return URL.createObjectURL(videoBlob);
   } catch (error) {
     console.error('Video Generation Error:', error);
