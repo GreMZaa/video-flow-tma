@@ -1,23 +1,21 @@
-import React, { useState, useRef } from 'react';
-import { Send, Sparkles, Wand2, Paperclip, Mic, Settings2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef } from 'react';
+import { Send, Wand2, Paperclip } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const NativeInput = ({ 
   value, 
   onChange, 
   onSend, 
-  onAutomate, 
   isLoading, 
   mode, 
-  setMode,
-  hasDrafts 
+  setMode
 }) => {
   const textareaRef = useRef(null);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      if (value.trim() && !isLoading) onSend();
     }
   };
 
@@ -34,39 +32,17 @@ const NativeInput = ({
   }, [value]);
 
   return (
-    <div className="tg-input-bar relative">
-      {/* Action Bar for Drafts */}
-      <AnimatePresence>
-        {hasDrafts && (
-          <motion.div 
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 10, opacity: 0 }}
-            className="absolute -top-14 left-0 right-0 flex justify-center z-10"
-          >
-            <button
-              onClick={onAutomate}
-              disabled={isLoading}
-              className="bg-tg-accent text-[#ffffff] px-6 py-2.5 rounded-full font-medium text-sm flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.5)] active:scale-95 transition-all disabled:opacity-50"
-            >
-              <Sparkles size={16} />
-              Подтвердить сценарий и запустить
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="max-w-4xl mx-auto flex items-end gap-2 px-2">
-        {/* Attachment/Mode button */}
+    <div className="tg-input-bar relative px-2 pb-safe">
+      <div className="max-w-4xl mx-auto flex items-end gap-2 p-1 bg-tg-bg rounded-2xl border border-white/[0.05]">
+        {/* Mode Toggle Button */}
         <button 
           onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
-          className={`p-2 rounded-full transition-colors ${mode === 'workflow' ? 'text-tg-accent bg-tg-accent/10' : 'text-tg-hint hover:bg-white/5'}`}
-          title={mode === 'workflow' ? 'Переключить в ручной режим' : 'Переключить в режим сценария'}
+          className={`p-2.5 rounded-xl transition-all active:scale-90 ${mode === 'workflow' ? 'text-tg-accent bg-tg-accent/10' : 'text-tg-hint hover:bg-white/5'}`}
         >
-          {mode === 'workflow' ? <Wand2 size={24} /> : <Paperclip size={24} />}
+          {mode === 'workflow' ? <Wand2 size={24} strokeWidth={2} /> : <Paperclip size={24} strokeWidth={2} />}
         </button>
 
-        {/* Text Area Container */}
+        {/* Text Area */}
         <div className="flex-1 relative flex items-center">
           <textarea
             ref={textareaRef}
@@ -74,29 +50,29 @@ const NativeInput = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === 'workflow' ? "Опишите сценарий (например: история о коте)..." : "Опишите сцену..."}
-            className="tg-input-field resize-none py-2.5 max-h-[120px] custom-scrollbar overflow-y-auto block"
+            placeholder={mode === 'workflow' ? "Опишите сценарий..." : "Опишите сцену..."}
+            className="tg-input-field resize-none py-2.5 max-h-[120px] custom-scrollbar overflow-y-auto block bg-transparent border-none focus:ring-0 text-[15px]"
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1">
+        {/* Send Button */}
+        <div className="flex items-center p-1">
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.85 }}
             onClick={onSend}
-            disabled={!value || isLoading}
-            className={`p-2 rounded-full transition-all ${!value ? 'text-tg-hint' : 'text-tg-accent bg-tg-accent/10'}`}
+            disabled={!value.trim() || isLoading}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!value.trim() ? 'text-tg-hint opacity-40' : 'text-tg-accent bg-tg-accent/10'}`}
           >
-            <Send size={24} className={isLoading ? 'animate-pulse' : ''} />
+            <Send size={20} strokeWidth={2.5} className={isLoading ? 'animate-pulse' : ''} />
           </motion.button>
         </div>
       </div>
       
-      {/* Visual indicator for current mode */}
-      <div className="flex justify-center mt-1">
-        <div className="flex gap-1.5">
-          <div className={`w-1 h-1 rounded-full ${mode === 'creative' ? 'bg-tg-accent' : 'bg-white/10'}`} />
-          <div className={`w-1 h-1 rounded-full ${mode === 'workflow' ? 'bg-tg-accent' : 'bg-white/10'}`} />
+      {/* Mode Indicators */}
+      <div className="flex justify-center mt-2 pb-2">
+        <div className="flex gap-2">
+          <div className={`h-1 rounded-full transition-all duration-300 ${mode === 'creative' ? 'w-4 bg-tg-accent' : 'w-1 bg-white/10'}`} />
+          <div className={`h-1 rounded-full transition-all duration-300 ${mode === 'workflow' ? 'w-4 bg-tg-accent' : 'w-1 bg-white/10'}`} />
         </div>
       </div>
     </div>

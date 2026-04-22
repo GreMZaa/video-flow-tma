@@ -163,3 +163,33 @@ export const useTelegram = () => {
     version: tg?.version || '0',
   };
 };
+
+/**
+ * Declarative hook for Telegram MainButton
+ * @param {string} text - Button text
+ * @param {Function} onClick - Click handler
+ * @param {boolean} visible - Visibility state
+ * @param {boolean} loading - Loading state
+ */
+export const useMainButton = (text, onClick, visible = true, loading = false) => {
+  const { tg, showMainButton, hideMainButton, setMainButtonLoading } = useTelegram();
+
+  useEffect(() => {
+    if (!tg) return;
+
+    if (visible) {
+      showMainButton(text, onClick);
+    } else {
+      hideMainButton();
+    }
+
+    return () => {
+      // Logic inside useTelegram handles offClick
+    };
+  }, [tg, text, onClick, visible]);
+
+  useEffect(() => {
+    if (!tg) return;
+    setMainButtonLoading(loading);
+  }, [tg, loading]);
+};

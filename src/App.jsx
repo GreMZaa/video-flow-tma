@@ -1,44 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { useTelegram } from './hooks/useTelegram';
+import { useTelegram, useMainButton } from './hooks/useTelegram';
+import { useProjectManager } from './hooks/useProjectManager';
+import { useVideoFlow } from './hooks/useVideoFlow';
 import SettingsModal from './components/SettingsModal';
 import ProjectList from './components/ProjectList';
 import ChatFlow from './components/ChatFlow';
 import NativeInput from './components/NativeInput';
 import { Settings, Share2, Menu, Sparkles, Trash2, Layers } from 'lucide-react';
-import { generateImage, generateVideoSegment, generateScenario, generateTTS, VOICE_OPTIONS, stitchVideos } from './services/api';
+import { VOICE_OPTIONS } from './services/api';
 
 function App() {
-  const { tg, showHaptic, showAlert, showMainButton, hideMainButton, setMainButtonLoading } = useTelegram();
+  const { tg, showHaptic, showAlert } = useTelegram();
+  const { 
+    projects, 
+    activeProject, 
+    activeProjectId, 
+    updateActiveProject, 
+    createProject, 
+    selectProject 
+  } = useProjectManager();
 
-  // ── Multi-Project State ────────────────────────────────────────────────
-  const [projects, setProjects] = useState(() => {
-    const saved = localStorage.getItem('vf_projects');
-    if (saved) return JSON.parse(saved);
-    
-    const oldName = localStorage.getItem('projectName');
-    if (oldName) {
-      return [{
-        id: 'legacy-project',
-        name: oldName,
-        characterPrompt: localStorage.getItem('characterStyle') || 'Pushkin in claymation style',
-        generations: [],
-        lastUpdate: new Date().toISOString()
-      }];
-    }
-    return [{
-      id: 'first-project',
-      name: 'Новый проект',
-      characterPrompt: 'Cinematic studio animation style, high quality',
-      generations: [],
-      lastUpdate: new Date().toISOString()
-    }];
-  });
-
-  const [activeProjectId, setActiveProjectId] = useState(
-    localStorage.getItem('vf_activeProjectId') || (projects[0]?.id || null)
-  );
-
-  const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
+  const {
+    isLoading,
+    isExporting,
+    exportProgress,
+    handleCreateScenario,
+    handleAutomateProject,
+    handleExportProject,
+    handleSingleCreate
+  } = useVideoFlow(activeProject, updateActiveProject, showHaptic, showAlert);
 
   const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
   const [actionPrompt, setActionPrompt] = useState('');
@@ -47,192 +37,63 @@ function App() {
   const [projectMode, setProjectMode] = useState('creative'); // 'creative' or 'workflow'
   const [personCount, setPersonCount] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeVideo, setActiveVideo] = useState(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-
-  // Sync to localStorage
-  useEffect(() => {
-    localStorage.setItem('vf_projects', JSON.stringify(projects));
-  }, [projects]);
-
-  useEffect(() => {
-    if (activeProjectId) localStorage.setItem('vf_activeProjectId', activeProjectId);
-  }, [activeProjectId]);
 
   useEffect(() => {
     localStorage.setItem('SILICON_FLOW_KEY', apiKey);
   }, [apiKey]);
 
-  // Project Helper
-  const updateActiveProject = (updates) => {
-    setProjects(prev => prev.map(p => {
-      if (p.id === activeProjectId) {
-        const newFields = typeof updates === 'function' ? updates(p) : updates;
-        return { ...p, ...newFields, lastUpdate: new Date().toISOString() };
-      }
-      return p;
-    }));
-  };
+  // ─── Native MainButton Integration ──────────────────────────────────────────
 
-  const handleCreateScenario = async () => {
-    if (!activeProject) return;
-    setIsLoading(true);
-    try {
-      const scenes = await generateScenario(actionPrompt, activeProject.characterPrompt, personCount);
-      const newScenes = scenes.map((s, idx) => ({
-        id: Date.now() + idx,
-        prompt: s.image_prompt,
-        voiceText: s.voice_text,
-        sceneName: s.scene_name || `Сцена ${idx + 1}`,
-        style: activeProject.characterPrompt,
-        status: 'draft',
-        aspectRatio: aspectRatio
-      }));
-      updateActiveProject({ generations: [...newScenes, ...activeProject.generations] });
-      setActionPrompt('');
-    } catch (err) {
-      showAlert(`Ошибка сценария: ${err.message}`);
-    } finally {
-      setIsLoading(false);
+  const hasDrafts = activeProject?.generations?.some(g => g.status === 'draft');
+  const hasReadyVideos = activeProject?.generations?.some(g => g.status === 'ready');
+
+  // Logic for MainButton text and action
+  const mainButtonText = isExporting 
+    ? `Экспорт ${exportProgress}%` 
+    : hasDrafts 
+      ? 'Запустить генерацию' 
+      : 'Экспорт видео';
+
+  const mainButtonAction = () => {
+    if (isExporting) return;
+    if (hasDrafts) {
+      handleAutomateProject(selectedVoice);
+    } else {
+      handleExportProject();
     }
   };
 
-  const handleAutomateProject = async () => {
-    if (!activeProject) return;
-    const drafts = activeProject.generations.filter(g => g.status === 'draft');
-    if (drafts.length === 0) return;
+  const isMainButtonVisible = view === 'chat' && (hasDrafts || hasReadyVideos || isExporting);
 
-    setIsLoading(true);
-    showHaptic('medium');
+  useMainButton(mainButtonText, mainButtonAction, isMainButtonVisible, isLoading || isExporting);
 
-    updateActiveProject(p => ({
-      generations: p.generations.map(g => g.status === 'draft' ? { ...g, status: 'queued' } : g)
-    }));
+  // ─── Handlers ───────────────────────────────────────────────────────────────
 
-    for (const item of drafts) {
-      try {
-        const setStatus = (id, status, fields = {}) => {
-          updateActiveProject(p => ({
-            generations: p.generations.map(g => g.id === id ? { ...g, status, ...fields } : g)
-          }));
-        };
-
-        setStatus(item.id, 'generating');
-        const imageUrl = generateImage(`${item.style}, ${item.prompt}`);
-        generateTTS(item.voiceText, selectedVoice).catch(console.error);
-        setStatus(item.id, 'generating_video', { imageUrl });
-
-        const { url, isMotion } = await generateVideoSegment(imageUrl, item.prompt);
-        setStatus(item.id, 'ready', { videoUrl: url, isMotion });
-      } catch (err) {
-        console.error('Automation error', err);
-        updateActiveProject(p => ({
-          generations: p.generations.map(g => g.id === item.id ? { ...g, status: 'error' } : g)
-        }));
-      }
-    }
-    setIsLoading(false);
-    showHaptic('success');
-  };
-
-  const handleExportProject = async () => {
-    if (!activeProject) return;
-    const readyVideos = activeProject.generations
-      .filter(g => g.videoUrl && g.status === 'ready')
-      .reverse() 
-      .map(g => ({ url: g.videoUrl, isMotion: g.isMotion }));
-
-    if (readyVideos.length === 0) {
-      showAlert('Нет готовых видео');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      const finalUrl = await stitchVideos(readyVideos, (msg, prog) => setExportProgress(prog));
-      const a = document.createElement('a');
-      a.href = finalUrl;
-      a.download = `${activeProject.name}.mp4`;
-      a.click();
-    } catch (err) {
-      showAlert('Ошибка экспорта');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleCreate = async () => {
-    if (!activeProject) return;
+  const handleSend = async () => {
     if (projectMode === 'workflow') {
-      handleCreateScenario();
-      return;
-    }
-    if (!actionPrompt) return;
-
-    setIsLoading(true);
-    showHaptic('medium');
-
-    const newGen = {
-      id: Date.now(),
-      prompt: actionPrompt,
-      style: activeProject.characterPrompt,
-      aspectRatio,
-      status: 'generating',
-      timestamp: new Date().toISOString()
-    };
-
-    updateActiveProject(p => ({ generations: [newGen, ...p.generations] }));
-    const currentPrompt = actionPrompt;
-    setActionPrompt('');
-
-    try {
-      const { url, isMotion } = await generateVideoSegment(null, `${activeProject.characterPrompt}, ${currentPrompt}`);
-      updateActiveProject(p => ({ 
-        generations: p.generations.map(g => g.id === newGen.id ? { ...g, videoUrl: url, isMotion, status: 'ready' } : g)
-      }));
-    } catch (err) {
-      showAlert(`Ошибка: ${err.message}`);
-    } finally {
-      setIsLoading(false);
+      const success = await handleCreateScenario(actionPrompt, personCount);
+      if (success) setActionPrompt('');
+    } else {
+      const success = await handleSingleCreate(actionPrompt, aspectRatio);
+      if (success) setActionPrompt('');
     }
   };
 
   const handleDelete = (index) => {
     if (!activeProject) return;
-    updateActiveProject({ generations: activeProject.generations.filter((_, i) => i !== index) });
+    updateActiveProject({ 
+      generations: activeProject.generations.filter((_, i) => i !== index) 
+    });
     showHaptic('light');
   };
 
   const handleUpdateVideo = (id, updates) => {
-    if (!activeProject) return;
     updateActiveProject({
       generations: activeProject.generations.map(g => g.id === id ? { ...g, ...updates } : g)
     });
-  };
-
-  const handleCreateProject = () => {
-    const newId = Date.now().toString();
-    const newProject = {
-      id: newId,
-      name: `Проект ${projects.length + 1}`,
-      characterPrompt: 'Cinematic studio animation style',
-      generations: [],
-      lastUpdate: new Date().toISOString()
-    };
-    setProjects([newProject, ...projects]);
-    setActiveProjectId(newId);
-    setView('chat');
-    showHaptic('medium');
-  };
-
-  const handleSelectProject = (id) => {
-    setActiveProjectId(id);
-    setView('chat');
-    showHaptic('light');
   };
 
   // Responsiveness
@@ -245,7 +106,7 @@ function App() {
   return (
     <div className="flex flex-col h-full overflow-hidden text-tg-text">
       {/* Header */}
-      <div className="h-14 shrink-0 flex items-center justify-between px-4 bg-[#1c1c1d] border-b border-white/5 z-30">
+      <div className="h-14 shrink-0 flex items-center justify-between px-4 bg-tg-header border-b border-white/5 z-30">
         <div className="flex items-center gap-3">
           {view === 'chat' && (
             <button onClick={() => setView('list')} className="p-1 -ml-1 text-tg-accent active:scale-95 transition-transform">
@@ -262,11 +123,6 @@ function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {view === 'chat' && (
-            <button onClick={handleExportProject} className="p-2 hover:bg-white/5 rounded-full text-tg-accent">
-              <Share2 size={20} />
-            </button>
-          )}
           <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/5 rounded-full text-tg-hint">
             <Settings size={20} />
           </button>
@@ -279,8 +135,8 @@ function App() {
           <ProjectList 
             projects={projects}
             activeProjectId={activeProjectId}
-            onSelectProject={handleSelectProject}
-            onCreateProject={handleCreateProject}
+            onSelectProject={(id) => { selectProject(id); setView('chat'); showHaptic('light'); }}
+            onCreateProject={() => { createProject(); setView('chat'); showHaptic('medium'); }}
           />
         )}
 
@@ -298,12 +154,10 @@ function App() {
                 <NativeInput 
                   value={actionPrompt}
                   onChange={setActionPrompt}
-                  onSend={handleCreate}
-                  onAutomate={handleAutomateProject}
+                  onSend={handleSend}
                   isLoading={isLoading}
                   mode={projectMode}
                   setMode={setProjectMode}
-                  hasDrafts={activeProject.generations.some(g => g.status === 'draft')}
                 />
               </>
             ) : (
@@ -352,13 +206,14 @@ function App() {
         </div>
       )}
 
+      {/* Export progress indicator (in addition to MainButton for visibility) */}
       {isExporting && (
         <div className="fixed inset-x-4 top-16 z-[60] bg-tg-accent p-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
             <Layers className="text-white animate-pulse" size={20} />
           </div>
           <div className="flex-1">
-            <div className="text-white text-xs font-bold uppercase tracking-widest mb-1">Экспорт видео</div>
+            <div className="text-white text-xs font-bold uppercase tracking-widest mb-1">Сборка видео</div>
             <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
               <div className="h-full bg-white transition-all duration-300" style={{ width: `${exportProgress}%` }} />
             </div>
