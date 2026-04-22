@@ -64,32 +64,40 @@ Generate a JSON array of 5 scenes for a video based on the user's idea and style
 Style: ${style}
 Number of people in frame: ${personCount}
 
-Output ONLY a JSON array with this structure:
+Output ONLY a RAW JSON array. NO markdown blocks.
 [
   {
-    "image_prompt": "Detailed visual description for image generation (English)",
-    "voice_text": "Narration text for this scene (Russian)",
-    "scene_name": "Short scene title"
+    "image_prompt": "Detailed visual description (English)",
+    "voice_text": "Narration text (Russian)",
+    "scene_name": "Short title"
   }
-]
-Keep image_prompts in English. Keep voice_text in Russian.`;
+]`;
 
   try {
     const response = await axios.post(
-      `${POLLINATIONS_TEXT_URL}openai/chat/completions`,
+      'https://text.pollinations.ai/openai',
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Idea: ${idea}` }
         ],
-        model: 'openai', // Pollinations uses 'openai' for their gpt-4o-mini / llama proxy
-        jsonMode: true
+        model: 'openai', 
+        json: true 
       }
     );
 
-    const content = response.data.choices[0].message.content;
-    const cleanContent = content.replace(/```json|```/g, '').trim();
-    const scenes = JSON.parse(cleanContent);
+    let content = response.data.choices[0].message.content;
+    
+    // Safety: ensure it's a string before calling replace
+    if (typeof content !== 'string') {
+      content = JSON.stringify(content);
+    }
+
+    // Robust parsing: extract array if AI wrapped it in text
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    const cleanContent = jsonMatch ? jsonMatch[0] : content;
+    
+    const scenes = JSON.parse(cleanContent.replace(/```json|```/g, '').trim());
     return Array.isArray(scenes) ? scenes : (scenes.scenes || []);
   } catch (error) {
     console.error('Scenario Generation Error:', error);

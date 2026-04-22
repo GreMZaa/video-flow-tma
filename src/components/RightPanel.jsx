@@ -218,7 +218,7 @@ const RightPanel = ({
         {/* Tips */}
         <div className="p-5 rounded-2xl liquid-glass">
           <p className="text-[10px] text-tg-hint leading-relaxed uppercase tracking-widest opacity-40 font-bold">
-            Совет: Опишите не только объект, но и динамику движения. Модель CogVideoX-5B лучше всего справляется с плавными жестами.
+            Совет: Опишите не только объект, но и динамику движения. Наш Universal Free Engine лучше всего справляется с плавными жестами.
           </p>
         </div>
       </div>

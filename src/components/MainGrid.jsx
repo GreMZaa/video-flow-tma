@@ -72,7 +72,7 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
           <span className="text-[10px] uppercase font-black text-tg-hint tracking-[0.1em] opacity-40 truncate max-w-[80%]">
             {item.status === 'generating' ? 'Инициализация...' : 
              item.status === 'generating_video' ? 'Магия видео...' : 
-             (item.prompt || 'CogVideoX')}
+             (item.prompt || 'Universal Free Engine')}
           </span>
           <div className="flex gap-1.5">
              <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${item.imageUrl ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-white/10'}`} title="Image" />
