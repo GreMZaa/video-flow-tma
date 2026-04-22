@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Wand2, Paperclip, Smile, Mic, Play, Download, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Send, Wand2, Smile, Mic, Play, Download, Loader2 } from 'lucide-react';
 
 const NativeInput = ({
   value,
@@ -16,6 +16,7 @@ const NativeInput = ({
   isExporting,
 }) => {
   const textareaRef = useRef(null);
+  const wrapperRef = useRef(null);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,35 +35,46 @@ const NativeInput = ({
 
   React.useEffect(() => { adjustHeight(); }, [value]);
 
+  // When keyboard appears on mobile the visual viewport shrinks.
+  // Scroll the input wrapper into view so it isn't hidden under the keyboard.
+  const handleFocus = () => {
+    setTimeout(() => {
+      wrapperRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 300);
+  };
+
   const canSend = value.trim().length > 0 && !isLoading;
   const showRunButton = hasDrafts && !value.trim() && !isLoading && !isExporting;
   const showExportButton = hasReadyVideos && !hasDrafts && !value.trim() && !isExporting;
 
   return (
-    <div style={{
-      flexShrink: 0,
-      background: 'rgba(28, 28, 30, 0.85)',
-      backdropFilter: 'blur(30px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-      borderTop: '0.5px solid rgba(255, 255, 255, 0.08)',
-      paddingBottom: 'env(safe-area-inset-bottom, 8px)',
-      paddingTop: 8,
-      zIndex: 100
-    }}>
+    <div
+      ref={wrapperRef}
+      style={{
+        flexShrink: 0,
+        background: 'rgba(28, 28, 30, 0.85)',
+        backdropFilter: 'blur(30px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+        borderTop: '0.5px solid rgba(255, 255, 255, 0.08)',
+        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+        paddingTop: 8,
+        zIndex: 100,
+      }}
+    >
       {/* Mode Indicator & Action Row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px 10px' }}>
-        <div 
+        <div
           onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
-          style={{ 
+          style={{
             display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
             padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)',
-            border: '0.5px solid rgba(255,255,255,0.1)'
+            border: '0.5px solid rgba(255,255,255,0.1)',
           }}
         >
-          <div style={{ 
-            width: 8, height: 8, borderRadius: '50%', 
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
             background: mode === 'workflow' ? '#50a2e9' : '#ff9500',
-            boxShadow: `0 0 8px ${mode === 'workflow' ? '#50a2e9' : '#ff9500'}`
+            boxShadow: `0 0 8px ${mode === 'workflow' ? '#50a2e9' : '#ff9500'}`,
           }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {mode === 'workflow' ? 'Сценарий' : 'Кадр'}
@@ -137,6 +149,7 @@ const NativeInput = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
             placeholder={mode === 'workflow' ? 'Опишите идею для видео...' : 'Опишите кадр...'}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
@@ -146,8 +159,7 @@ const NativeInput = ({
               WebkitAppearance: 'none',
             }}
           />
-          <button 
-            onClick={() => alert('Стикеры и эмодзи скоро!')}
+          <button
             style={{ marginBottom: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--tg-hint)', flexShrink: 0 }}
           >
             <Smile size={22} strokeWidth={2} />
@@ -161,11 +173,11 @@ const NativeInput = ({
             className="ios-btn"
             style={{
               width: 38, height: 38, borderRadius: '50%',
-              background: canSend ? 'var(--tg-accent)' : 'rgba(255,255,255,0.05)', 
+              background: canSend ? 'var(--tg-accent)' : 'rgba(255,255,255,0.05)',
               border: 'none', cursor: canSend ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: canSend ? 'white' : 'rgba(255,255,255,0.2)',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
             }}
           >
             {isLoading ? (
@@ -173,7 +185,7 @@ const NativeInput = ({
             ) : canSend ? (
               <Send size={18} strokeWidth={2.5} style={{ transform: 'translateX(1px)' }} />
             ) : (
-              <div onClick={() => alert('Голосовой ввод скоро!')} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Mic size={22} strokeWidth={2} />
               </div>
             )}

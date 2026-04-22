@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTelegram, useMainButton } from './hooks/useTelegram';
 import { useProjectManager } from './hooks/useProjectManager';
 import { useVideoFlow } from './hooks/useVideoFlow';
@@ -54,6 +54,26 @@ function App() {
   useEffect(() => {
     localStorage.setItem('SILICON_FLOW_KEY', apiKey);
   }, [apiKey]);
+
+  // ── Keyboard fix for Telegram iOS Mini App ──────────────────────────────
+  // When the soft keyboard opens, visualViewport shrinks but the layout
+  // viewport stays the same, so the input bar gets hidden under the keyboard.
+  // We translate the root element upward by the gap between the two viewports.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, offset)}px`);
+    };
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+      document.documentElement.style.removeProperty('--keyboard-offset');
+    };
+  }, []);
 
   // ─── MainButton ───────────────────────────────────────────────────────────────
   const hasDrafts = activeProject?.generations?.some(g => g.status === 'draft');
@@ -137,7 +157,7 @@ function App() {
   const isDesktop = !isMobile;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'var(--tg-bg)', color: 'var(--tg-text)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'var(--tg-bg)', color: 'var(--tg-text)', transform: 'translateY(calc(-1 * var(--keyboard-offset, 0px)))', transition: 'transform 0.1s' }}>
 
       {/* Header logic: List view header is managed by ProjectList component */}
       {view === 'chat' && (
