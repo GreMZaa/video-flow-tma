@@ -1,27 +1,28 @@
-@import "tailwindcss";
-
 :root {
-  --tg-bg: var(--tg-theme-bg-color, #1c1c1d);
-  --tg-text: var(--tg-theme-text-color, #f8fafc);
-  --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-  --tg-link: var(--tg-theme-link-color, #007aff);
-  --tg-button: var(--tg-theme-button-color, #007aff);
-  --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
-  --tg-secondary: var(--tg-theme-secondary-bg-color, #000000);
-  --tg-header: var(--tg-theme-header-bg-color, #1c1c1d);
-  --tg-accent: #3390ec; /* Standard Telegram Blue */
-  --tg-bubble-out: #2b5278;
-  --tg-bubble-in: #18222d;
+  --tg-bg: #000000;
+  --tg-secondary: #1c1c1d;
+  --tg-text: #ffffff;
+  --tg-hint: #8e8e93;
+  --tg-accent: #007aff;
+  --tg-accent-gradient: linear-gradient(90deg, #007aff, #5856d6);
+  --tg-bubble-out: #4d80c8;
+  --tg-bubble-out-text: #ffffff;
+  --tg-bubble-in: #1e2d3e;
+  --tg-bubble-in-text: #ffffff;
+  --tg-header-bg: rgba(28, 28, 29, 0.88);
+  --tg-tab-bg: #1c1c1d;
+  --tg-tab-active: #ffffff;
+  --font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
 
 @theme {
   --color-tg-bg: var(--tg-bg);
   --color-tg-text: var(--tg-text);
-  --color-tg-button: var(--tg-button);
+  --color-tg-button: var(--tg-accent);
   --color-tg-secondary: var(--tg-secondary);
   --color-tg-accent: var(--tg-accent);
   --color-tg-hint: var(--tg-hint);
-  --color-tg-header: var(--tg-header);
 }
 
 * {
@@ -38,96 +39,124 @@ html, body {
   overflow: hidden;
   background-color: var(--tg-bg);
   color: var(--tg-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  font-family: var(--font-family);
+  overflow: hidden;
 }
 
-/* Telegram Message Bubbles */
+/* Glassmorphism */
+.glass-header {
+  background-color: var(--tg-header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+}
+
+.glass-nav {
+  background-color: var(--tg-header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Bubbles */
 .tg-bubble {
-  @apply max-w-[85%] rounded-[1.25rem] px-4 py-2 relative text-[15px] leading-relaxed shadow-sm;
-}
-
-.tg-bubble-in {
-  @apply self-start bg-[#212d3b] text-white rounded-bl-sm;
-  background-image: linear-gradient(rgba(255,255,255,0.03), transparent);
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 18px;
+  position: relative;
+  font-size: 15px;
+  line-height: 21px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  word-break: break-word;
 }
 
 .tg-bubble-out {
-  @apply self-end bg-[#2b5278] text-white rounded-br-sm;
-  background-image: linear-gradient(rgba(255,255,255,0.05), transparent);
+  align-self: flex-end;
+  background-color: var(--tg-bubble-out);
+  color: var(--tg-bubble-out-text);
+  border-bottom-right-radius: 4px;
+}
+
+.tg-bubble-in {
+  align-self: flex-start;
+  background-color: var(--tg-bubble-in);
+  color: var(--tg-bubble-in-text);
+  border-bottom-left-radius: 4px;
 }
 
 .tg-bubble-media {
-  @apply p-1 overflow-hidden;
+  padding: 4px !important;
+  border-radius: 18px !important;
 }
 
-/* Glass System */
-.glass {
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* Tabs */
+.pill-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.025);
-  backdrop-filter: blur(35px);
-  -webkit-backdrop-filter: blur(35px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    0 20px 40px -15px rgba(0, 0, 0, 0.5);
+.pill-tab-active {
+  background-color: var(--tg-accent);
+  color: white;
 }
 
-/* Native Input Bar */
-.tg-input-bar {
-  @apply bg-tg-header border-t border-white/[0.05] z-50 shrink-0 w-full pt-2;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+.pill-tab-inactive {
+  background-color: transparent;
+  color: var(--tg-hint);
 }
 
-.tg-input-field {
-  @apply w-full bg-transparent border-none px-2 py-2 text-[16px] focus:ring-0 placeholder:text-tg-hint/40;
-}
-
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Custom Utilities */
-.custom-scrollbar {
-  scrollbar-width: none;
-}
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 
 /* Animations */
 @keyframes ken-burns {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.15); }
+  0% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.1) translate(-1%, -1%); }
+  100% { transform: scale(1) translate(0, 0); }
 }
 
 .animate-ken-burns {
-  animation: ken-burns 10s ease-in-out infinite alternate;
+  animation: ken-burns 20s ease-in-out infinite;
 }
 
-@keyframes slide-in {
-  from { transform: translateY(-20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+/* Safe areas for mobile */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.animate-slide-in {
-  animation: slide-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
 }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--tg-bg);
-  /* Optional subtle background texture */
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(51, 144, 236, 0.05) 0, transparent 50%), 
-    radial-gradient(at 100% 100%, rgba(51, 144, 236, 0.03) 0, transparent 50%);
+/* Input Styles */
+.tg-input-bar {
+  background-color: var(--tg-header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.tg-input-field {
+  background: transparent;
+  color: white;
+  caret-color: var(--tg-accent);
+}
+
+.tg-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }

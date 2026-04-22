@@ -42,13 +42,17 @@ export const useProjectManager = () => {
   }, [activeProjectId]);
 
   const updateActiveProject = (updates) => {
-    setProjects(prev => prev.map(p => {
-      if (p.id === activeProjectId) {
-        const newFields = typeof updates === 'function' ? updates(p) : updates;
-        return { ...p, ...newFields, lastUpdate: new Date().toISOString() };
-      }
-      return p;
-    }));
+    setProjects(prev => {
+      const activeProject = prev.find(p => p.id === activeProjectId);
+      if (!activeProject) return prev;
+
+      const newFields = typeof updates === 'function' ? updates(activeProject) : updates;
+      const updatedProject = { ...activeProject, ...newFields, lastUpdate: new Date().toISOString() };
+      
+      // Move updated project to top
+      const filtered = prev.filter(p => p.id !== activeProjectId);
+      return [updatedProject, ...filtered];
+    });
   };
 
   const createProject = () => {
@@ -77,6 +81,10 @@ export const useProjectManager = () => {
     setActiveProjectId(id);
   };
 
+  const renameProject = (id, name) => {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+  };
+
   return {
     projects,
     activeProject,
@@ -84,6 +92,7 @@ export const useProjectManager = () => {
     updateActiveProject,
     createProject,
     deleteProject,
-    selectProject
+    selectProject,
+    renameProject
   };
 };

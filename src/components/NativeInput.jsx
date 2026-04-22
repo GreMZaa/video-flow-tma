@@ -1,14 +1,19 @@
 import React, { useRef } from 'react';
-import { Send, Wand2, Paperclip } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Wand2, Paperclip, Smile, Mic, Play, Download } from 'lucide-react';
 
-const NativeInput = ({ 
-  value, 
-  onChange, 
-  onSend, 
-  isLoading, 
-  mode, 
-  setMode
+const NativeInput = ({
+  value,
+  onChange,
+  onSend,
+  isLoading,
+  mode,
+  setMode,
+  onRunGeneration,
+  onExport,
+  hasDrafts,
+  hasReadyVideos,
+  isExporting,
 }) => {
   const textareaRef = useRef(null);
 
@@ -27,53 +32,158 @@ const NativeInput = ({
     }
   };
 
-  React.useEffect(() => {
-    adjustHeight();
-  }, [value]);
+  React.useEffect(() => { adjustHeight(); }, [value]);
+
+  const canSend = value.trim().length > 0 && !isLoading;
+  const showRunButton = hasDrafts && !value.trim() && !isLoading && !isExporting;
+  const showExportButton = hasReadyVideos && !hasDrafts && !value.trim() && !isExporting;
 
   return (
-    <div className="tg-input-bar relative px-2 pb-safe">
-      <div className="max-w-4xl mx-auto flex items-end gap-2 p-1 bg-tg-bg rounded-2xl border border-white/[0.05]">
+    <div style={{
+      flexShrink: 0,
+      background: 'rgba(28, 28, 29, 0.92)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: '0.5px solid rgba(255,255,255,0.1)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
+
+      {/* Action Buttons (Run / Export) */}
+      {(showRunButton || showExportButton) && (
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px 0' }}>
+          {showRunButton && (
+            <button
+              onClick={onRunGeneration}
+              disabled={isLoading}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '11px 0', borderRadius: 22, border: 'none', cursor: 'pointer',
+                background: 'var(--tg-accent)', color: 'white', fontSize: 15, fontWeight: 600,
+              }}
+            >
+              <Play size={16} fill="white" /> Запустить генерацию
+            </button>
+          )}
+          {showExportButton && (
+            <button
+              onClick={onExport}
+              disabled={isExporting}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '11px 0', borderRadius: 22, border: 'none', cursor: 'pointer',
+                background: '#34c759', color: 'white', fontSize: 15, fontWeight: 600,
+              }}
+            >
+              <Download size={16} /> Скачать видео
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Input Row */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, padding: '8px 8px 8px' }}>
+
         {/* Mode Toggle Button */}
-        <button 
+        <button
           onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
-          className={`p-2.5 rounded-xl transition-all active:scale-90 ${mode === 'workflow' ? 'text-tg-accent bg-tg-accent/10' : 'text-tg-hint hover:bg-white/5'}`}
+          title={mode === 'workflow' ? 'Режим: Сценарий (нажми чтобы переключить)' : 'Режим: Кадр (нажми чтобы переключить)'}
+          style={{
+            padding: '8px 10px',
+            color: mode === 'workflow' ? 'var(--tg-accent)' : 'var(--tg-hint)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            flexShrink: 0, transition: 'color 0.2s',
+          }}
         >
-          {mode === 'workflow' ? <Wand2 size={24} strokeWidth={2} /> : <Paperclip size={24} strokeWidth={2} />}
+          {mode === 'workflow'
+            ? <Wand2 size={26} strokeWidth={2} />
+            : <Paperclip size={26} strokeWidth={2} />
+          }
         </button>
 
-        {/* Text Area */}
-        <div className="flex-1 relative flex items-center">
+        {/* Text Area Container */}
+        <div style={{
+          flex: 1,
+          background: 'rgba(255,255,255,0.09)',
+          borderRadius: 22,
+          padding: '6px 12px',
+          display: 'flex', alignItems: 'flex-end', gap: 6,
+          border: '0.5px solid rgba(255,255,255,0.07)',
+          minHeight: 44,
+        }}>
           <textarea
             ref={textareaRef}
             rows={1}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === 'workflow' ? "Опишите сценарий..." : "Опишите сцену..."}
-            className="tg-input-field resize-none py-2.5 max-h-[120px] custom-scrollbar overflow-y-auto block bg-transparent border-none focus:ring-0 text-[15px]"
+            placeholder={mode === 'workflow' ? 'Опишите сценарий...' : 'Опишите кадр...'}
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              color: 'white', fontSize: 16, lineHeight: '22px',
+              padding: '2px 0', resize: 'none', maxHeight: 120,
+              fontFamily: 'inherit',
+            }}
           />
+          <button style={{ marginBottom: 2, background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--tg-hint)', flexShrink: 0 }}>
+            <Smile size={22} strokeWidth={2} />
+          </button>
         </div>
 
-        {/* Send Button */}
-        <div className="flex items-center p-1">
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={onSend}
-            disabled={!value.trim() || isLoading}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!value.trim() ? 'text-tg-hint opacity-40' : 'text-tg-accent bg-tg-accent/10'}`}
-          >
-            <Send size={20} strokeWidth={2.5} className={isLoading ? 'animate-pulse' : ''} />
-          </motion.button>
+        {/* Send / Mic Button */}
+        <div style={{ padding: '0 4px', flexShrink: 0 }}>
+          <AnimatePresence mode="wait">
+            {canSend ? (
+              <motion.button
+                key="send"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                whileTap={{ scale: 0.85 }}
+                onClick={onSend}
+                disabled={isLoading}
+                style={{
+                  width: 42, height: 42, borderRadius: '50%',
+                  background: 'var(--tg-accent)', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', boxShadow: '0 2px 12px rgba(0,122,255,0.4)',
+                }}
+              >
+                <Send size={18} strokeWidth={2.5} style={{ transform: 'translateX(1px)' }} />
+              </motion.button>
+            ) : (
+              <motion.button
+                key="mic"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  width: 42, height: 42, borderRadius: '50%',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--tg-hint)',
+                }}
+              >
+                <Mic size={26} strokeWidth={2} />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-      
-      {/* Mode Indicators */}
-      <div className="flex justify-center mt-2 pb-2">
-        <div className="flex gap-2">
-          <div className={`h-1 rounded-full transition-all duration-300 ${mode === 'creative' ? 'w-4 bg-tg-accent' : 'w-1 bg-white/10'}`} />
-          <div className={`h-1 rounded-full transition-all duration-300 ${mode === 'workflow' ? 'w-4 bg-tg-accent' : 'w-1 bg-white/10'}`} />
-        </div>
+
+      {/* Mode Dots Indicator */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 5, paddingBottom: 8 }}>
+        <div style={{
+          height: 3, borderRadius: 3, transition: 'all 0.3s',
+          width: mode === 'creative' ? 20 : 6,
+          background: mode === 'creative' ? 'var(--tg-accent)' : 'rgba(255,255,255,0.15)',
+        }} />
+        <div style={{
+          height: 3, borderRadius: 3, transition: 'all 0.3s',
+          width: mode === 'workflow' ? 20 : 6,
+          background: mode === 'workflow' ? 'var(--tg-accent)' : 'rgba(255,255,255,0.15)',
+        }} />
       </div>
     </div>
   );

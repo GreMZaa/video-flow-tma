@@ -6,18 +6,20 @@ import SettingsModal from './components/SettingsModal';
 import ProjectList from './components/ProjectList';
 import ChatFlow from './components/ChatFlow';
 import NativeInput from './components/NativeInput';
-import { Settings, Share2, Menu, Sparkles, Trash2, Layers } from 'lucide-react';
+import { Settings, Sparkles, Layers, ChevronLeft, Plus, Edit3 } from 'lucide-react';
 import { VOICE_OPTIONS } from './services/api';
 
 function App() {
   const { tg, showHaptic, showAlert } = useTelegram();
-  const { 
-    projects, 
-    activeProject, 
-    activeProjectId, 
-    updateActiveProject, 
-    createProject, 
-    selectProject 
+  const {
+    projects,
+    activeProject,
+    activeProjectId,
+    updateActiveProject,
+    createProject,
+    deleteProject,
+    selectProject,
+    renameProject
   } = useProjectManager();
 
   const {
@@ -33,60 +35,51 @@ function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
   const [actionPrompt, setActionPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [view, setView] = useState('list');
-  const [projectMode, setProjectMode] = useState('creative'); // 'creative' or 'workflow'
+  const [view, setView] = useState('list'); // 'list' | 'chat'
+  const [projectMode, setProjectMode] = useState('creative');
   const [personCount, setPersonCount] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
+
+  // Detect mobile vs desktop
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('SILICON_FLOW_KEY', apiKey);
   }, [apiKey]);
 
-  // ─── Native MainButton Integration ──────────────────────────────────────────
-
+  // ─── MainButton ───────────────────────────────────────────────────────────────
   const hasDrafts = activeProject?.generations?.some(g => g.status === 'draft');
   const hasReadyVideos = activeProject?.generations?.some(g => g.status === 'ready');
-
-  // Logic for MainButton text and action
-  const mainButtonText = isExporting 
-    ? `Экспорт ${exportProgress}%` 
-    : hasDrafts 
-      ? 'Запустить генерацию' 
-      : 'Экспорт видео';
-
+  const mainButtonText = isExporting
+    ? `Экспорт ${exportProgress}%`
+    : hasDrafts ? 'Запустить генерацию' : 'Экспорт видео';
   const mainButtonAction = () => {
     if (isExporting) return;
-    if (hasDrafts) {
-      handleAutomateProject(selectedVoice);
-    } else {
-      handleExportProject();
-    }
+    hasDrafts ? handleAutomateProject(selectedVoice) : handleExportProject();
   };
-
   const isMainButtonVisible = view === 'chat' && (hasDrafts || hasReadyVideos || isExporting);
-
   useMainButton(mainButtonText, mainButtonAction, isMainButtonVisible, isLoading || isExporting);
 
-  // ─── Handlers ───────────────────────────────────────────────────────────────
-
+  // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleSend = async () => {
-    if (projectMode === 'workflow') {
-      const success = await handleCreateScenario(actionPrompt, personCount);
-      if (success) setActionPrompt('');
-    } else {
-      const success = await handleSingleCreate(actionPrompt, aspectRatio);
-      if (success) setActionPrompt('');
-    }
+    if (!actionPrompt.trim() || isLoading) return;
+    const success = projectMode === 'workflow'
+      ? await handleCreateScenario(actionPrompt, personCount)
+      : await handleSingleCreate(actionPrompt, aspectRatio);
+    if (success) setActionPrompt('');
   };
 
-  const handleDelete = (index) => {
+  const handleDeleteFrame = (index) => {
     if (!activeProject) return;
-    updateActiveProject({ 
-      generations: activeProject.generations.filter((_, i) => i !== index) 
-    });
+    updateActiveProject({ generations: activeProject.generations.filter((_, i) => i !== index) });
     showHaptic('light');
   };
 
@@ -96,84 +89,205 @@ function App() {
     });
   };
 
-  // Responsiveness
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const handleSelectProject = (id) => {
+    selectProject(id);
+    setView('chat');
+    setIsEditMode(false);
+    showHaptic('light');
+  };
+
+  const handleCreateProject = () => {
+    createProject();
+    setView('chat');
+    setIsEditMode(false);
+    showHaptic('medium');
+  };
+
+  const handleDeleteProject = (id) => {
+    deleteProject(id);
+    showHaptic('warning');
+    if (id === activeProjectId) setView('list');
+  };
+
+  const handleBackToList = () => {
+    setView('list');
+    setIsEditMode(false);
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────────────
+  // On desktop: show both panels side-by-side
+  // On mobile:  show only the current view
+  const showListPanel = !isMobile || view === 'list';
+  const showChatPanel = !isMobile || view === 'chat';
+
+  // On desktop, the header is shared and shows "Проекты" always.
+  // On mobile, it's context-sensitive.
+  const isDesktop = !isMobile;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden text-tg-text">
-      {/* Header */}
-      <div className="h-14 shrink-0 flex items-center justify-between px-4 bg-tg-header border-b border-white/5 z-30">
-        <div className="flex items-center gap-3">
-          {view === 'chat' && (
-            <button onClick={() => setView('list')} className="p-1 -ml-1 text-tg-accent active:scale-95 transition-transform">
-              <Menu size={24} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'var(--tg-bg)', color: 'var(--tg-text)' }}>
+
+      {/* ── Single App Header ──────────────────────────────────────────────────── */}
+      <div
+        className="glass-header shrink-0 z-30"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingBottom: 10,
+          paddingTop: isMobile ? 'env(safe-area-inset-top, 44px)' : 12,
+          minHeight: isMobile ? 90 : 56,
+          position: 'relative',
+        }}
+      >
+        {/* MOBILE: Chat view header */}
+        {isMobile && view === 'chat' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+            <button
+              onClick={handleBackToList}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--tg-accent)', padding: '4px 4px 4px 0' }}
+            >
+              <ChevronLeft size={28} strokeWidth={2.5} />
+              <span style={{ fontSize: 17, fontWeight: 500 }}>Проекты</span>
             </button>
-          )}
-          <div className="flex flex-col">
-            <span className="font-bold text-sm">
-              {view === 'list' ? 'Чаты' : (activeProject?.name || 'Проект')}
-            </span>
-            <span className="text-[10px] text-tg-hint -mt-1 font-medium italic">
-              {view === 'list' ? 'Video Flow Engine' : 'видео-проект'}
-            </span>
+
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, marginLeft: 4 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #50a2e9, #2b5278)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontWeight: 700, fontSize: 16, flexShrink: 0
+              }}>
+                {activeProject?.name?.[0]?.toUpperCase() || 'П'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2 }}>
+                  {activeProject?.name || 'Проект'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--tg-hint)' }}>
+                  {activeProject?.generations?.length || 0} кадров
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              style={{ color: 'var(--tg-accent)', padding: 8 }}
+            >
+              <Settings size={22} />
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/5 rounded-full text-tg-hint">
-            <Settings size={20} />
-          </button>
-        </div>
+        ) : (
+          /* MOBILE: List header | DESKTOP: unified header */
+          <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative' }}>
+            <button
+              onClick={() => setIsEditMode(prev => !prev)}
+              style={{
+                color: isEditMode ? '#ff3b30' : 'var(--tg-accent)',
+                fontSize: 17, fontWeight: 500, minWidth: 60
+              }}
+            >
+              {isEditMode ? 'Готово' : 'Изм.'}
+            </button>
+
+            <span style={{
+              position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+              fontWeight: 700, fontSize: 17, pointerEvents: 'none'
+            }}>
+              Проекты
+            </span>
+
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+              {isDesktop && (
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  style={{ color: 'var(--tg-hint)', padding: 6 }}
+                >
+                  <Settings size={22} />
+                </button>
+              )}
+              <button
+                onClick={handleCreateProject}
+                style={{ color: 'var(--tg-accent)', padding: 4 }}
+              >
+                <Plus size={26} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main Layout */}
-      <main className="flex-1 overflow-hidden relative flex">
-        {(view === 'list' || !isMobile) && (
-          <ProjectList 
-            projects={projects}
-            activeProjectId={activeProjectId}
-            onSelectProject={(id) => { selectProject(id); setView('chat'); showHaptic('light'); }}
-            onCreateProject={() => { createProject(); setView('chat'); showHaptic('medium'); }}
-            onDeleteProject={(id) => { deleteProject(id); showHaptic('warning'); }}
-          />
+      {/* ── Main Content ────────────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'row', background: 'var(--tg-bg)' }}>
+
+        {/* Project List Panel */}
+        {showListPanel && (
+          <div style={{
+            width: isMobile ? '100%' : 320,
+            minWidth: isMobile ? '100%' : 280,
+            maxWidth: isMobile ? '100%' : 360,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            borderRight: isMobile ? 'none' : '0.5px solid rgba(255,255,255,0.07)',
+            flexShrink: 0,
+          }}>
+            <ProjectList
+              projects={projects}
+              activeProjectId={activeProjectId}
+              isEditMode={isEditMode}
+              onSelectProject={handleSelectProject}
+              onDeleteProject={handleDeleteProject}
+            />
+          </div>
         )}
 
-        {(view === 'chat' || !isMobile) && (
-          <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        {/* Chat Panel */}
+        {showChatPanel && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {activeProject ? (
               <>
-                <ChatFlow 
+                <ChatFlow
                   generations={activeProject.generations}
                   onSelectVideo={setActiveVideo}
-                  onDeleteVideo={handleDelete}
+                  onDeleteVideo={handleDeleteFrame}
                   onUpdateVideo={handleUpdateVideo}
-                  activeProjectId={activeProjectId}
                 />
-                <NativeInput 
+                <NativeInput
                   value={actionPrompt}
                   onChange={setActionPrompt}
                   onSend={handleSend}
                   isLoading={isLoading}
                   mode={projectMode}
                   setMode={setProjectMode}
+                  onRunGeneration={() => handleAutomateProject(selectedVoice)}
+                  onExport={handleExportProject}
+                  hasDrafts={hasDrafts}
+                  hasReadyVideos={hasReadyVideos}
+                  isExporting={isExporting}
                 />
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 opacity-20 select-none">
-                <Sparkles size={80} strokeWidth={1} />
-                <p className="mt-4 font-medium text-lg text-center">Выберите или создайте проект</p>
+              <div style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                opacity: 0.15, userSelect: 'none'
+              }}>
+                <Sparkles size={72} strokeWidth={1} />
+                <p style={{ marginTop: 16, fontSize: 17, fontWeight: 500 }}>
+                  Выберите или создайте проект
+                </p>
               </div>
             )}
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Modals */}
+      {/* ── Settings Modal ─────────────────────────────────────────────────────── */}
       {isSettingsOpen && (
-        <SettingsModal 
+        <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           projectName={activeProject?.name || ''}
@@ -192,33 +306,61 @@ function App() {
         />
       )}
 
+      {/* ── Video Lightbox ─────────────────────────────────────────────────────── */}
       {activeVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4" onClick={() => setActiveVideo(null)}>
-          <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden glass shadow-2xl relative" onClick={e => e.stopPropagation()}>
+        <div
+          onClick={() => setActiveVideo(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', padding: 16
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 900,
+              aspectRatio: '16/9', borderRadius: 24,
+              overflow: 'hidden', position: 'relative', background: '#000'
+            }}
+          >
             {activeVideo.isMotion ? (
-               <img src={activeVideo.videoUrl} className="w-full h-full object-contain animate-ken-burns scale-110" />
+              <img src={activeVideo.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="frame" />
             ) : (
-               <video src={activeVideo.videoUrl} className="w-full h-full object-contain" controls autoPlay />
+              <video src={activeVideo.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} controls autoPlay />
             )}
-            <button className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white" onClick={() => setActiveVideo(null)}>
-              <Trash2 size={24} className="rotate-45" />
-            </button>
+            <button
+              onClick={() => setActiveVideo(null)}
+              style={{
+                position: 'absolute', top: 12, right: 12,
+                width: 36, height: 36, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+                color: 'white', fontSize: 22, lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: 'pointer'
+              }}
+            >×</button>
           </div>
         </div>
       )}
 
-      {/* Export progress indicator (in addition to MainButton for visibility) */}
+      {/* ── Export Progress ────────────────────────────────────────────────────── */}
       {isExporting && (
-        <div className="fixed inset-x-4 top-16 z-[60] bg-tg-accent p-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-in">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <Layers className="text-white animate-pulse" size={20} />
-          </div>
-          <div className="flex-1">
-            <div className="text-white text-xs font-bold uppercase tracking-widest mb-1">Сборка видео</div>
-            <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-white transition-all duration-300" style={{ width: `${exportProgress}%` }} />
+        <div style={{
+          position: 'fixed', left: 16, right: 16, top: 100, zIndex: 60,
+          background: 'var(--tg-accent)', borderRadius: 20, padding: '12px 16px',
+          display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 8px 32px rgba(0,122,255,0.4)'
+        }}>
+          <Layers className="text-white animate-pulse" size={22} />
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'white', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              Сборка видео
+            </div>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }}>
+              <div style={{ height: '100%', background: 'white', width: `${exportProgress}%`, borderRadius: 2, transition: 'width 0.3s' }} />
             </div>
           </div>
+          <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>{exportProgress}%</span>
         </div>
       )}
     </div>

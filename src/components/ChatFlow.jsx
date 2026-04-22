@@ -1,176 +1,249 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Trash2, Clock, CheckCircle2, AlertCircle, Loader2, MessageSquare, Sparkles, Wand2, Mic } from 'lucide-react';
+import { Play, Trash2, CheckCircle2, Loader2, MessageSquare, Wand2 } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
+
+const STATUS_LABELS = {
+  generating: 'Генерирую...',
+  generating_image: 'Рисую изображение...',
+  animating: 'Оживляю сцену...',
+  voiceover: 'Записываю озвучку...',
+  queued: 'В очереди...',
+  error: '⚠ Ошибка генерации',
+};
 
 const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) => {
   const scrollRef = useRef(null);
   const { showHaptic } = useTelegram();
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [generations.length]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollToBottom = () => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    scrollToBottom();
+    const t = setTimeout(scrollToBottom, 150);
+    return () => clearTimeout(t);
+  }, [generations.length, generations[generations.length - 1]?.status]);
+
+  if (generations.length === 0) {
+    return (
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: 32, textAlign: 'center', opacity: 0.3, userSelect: 'none'
+      }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: '50%',
+          background: 'rgba(0,122,255,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 20
+        }}>
+          <MessageSquare size={36} color="var(--tg-accent)" />
+        </div>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700 }}>Новый проект</h2>
+        <p style={{ margin: 0, fontSize: 15, color: 'var(--tg-hint)', lineHeight: 1.5, maxWidth: 260 }}>
+          Напишите описание сцены или сценария, чтобы начать генерацию.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div 
-      className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar bg-tg-bg"
+    <div
       ref={scrollRef}
+      style={{
+        flex: 1,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        padding: '12px 0',
+        background: 'var(--tg-bg)',
+      }}
+      className="custom-scrollbar"
     >
+      {/* Date divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 20px 8px' }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)' }} />
+        <span style={{ fontSize: 11, color: 'var(--tg-hint)', opacity: 0.5 }}>Сегодня</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)' }} />
+      </div>
+
       <AnimatePresence initial={false}>
         {generations.map((gen, idx) => (
-          <div key={gen.id} className="flex flex-col gap-2">
-            {/* User Message (Prompt) */}
-            {gen.status !== 'draft' && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                className="tg-bubble tg-bubble-out"
+          <div key={gen.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 10px' }}>
+
+            {/* Outgoing user bubble (the prompt) */}
+            {gen.status !== 'draft' && gen.prompt && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  alignSelf: 'flex-end',
+                  maxWidth: '82%',
+                  background: 'var(--tg-bubble-out)',
+                  color: 'var(--tg-bubble-out-text)',
+                  borderRadius: 18,
+                  borderBottomRightRadius: 4,
+                  padding: '8px 12px',
+                  fontSize: 15,
+                  lineHeight: '21px',
+                  wordBreak: 'break-word',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  position: 'relative',
+                }}
               >
-                <div className="flex justify-between items-start gap-4">
-                  <p className="text-[15px]">{gen.prompt}</p>
-                  <div className="flex items-center gap-1 opacity-50 text-[10px] self-end mt-1">
-                    <span>{new Date(gen.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    <CheckCircle2 size={10} />
-                  </div>
+                <p style={{ margin: 0, paddingRight: 52 }}>{gen.prompt}</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 2 }}>
+                  <span style={{ fontSize: 11, opacity: 0.6 }}>
+                    {new Date(gen.id).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <CheckCircle2 size={11} style={{ opacity: 0.6 }} />
                 </div>
               </motion.div>
             )}
 
-            {/* Bot Response (Media/Status/Draft) */}
-            <motion.div 
-              initial={{ opacity: 0, x: -20, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              className={`tg-bubble tg-bubble-in max-w-[90%] md:max-w-[75%] ${gen.status === 'ready' ? 'tg-bubble-media' : 'py-3'}`}
+            {/* Incoming bot bubble (status / media / draft) */}
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2, delay: 0.04 }}
+              style={{
+                alignSelf: 'flex-start',
+                maxWidth: gen.status === 'ready' ? '82%' : '75%',
+                minWidth: 180,
+                background: gen.status === 'ready' ? 'transparent' : 'var(--tg-bubble-in)',
+                color: 'var(--tg-bubble-in-text)',
+                borderRadius: 18,
+                borderBottomLeftRadius: 4,
+                padding: gen.status === 'ready' ? 0 : '10px 12px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                overflow: 'hidden',
+              }}
             >
-              {gen.status === 'ready' ? (
-                <div 
-                  className="relative group cursor-pointer overflow-hidden rounded-[1.1rem] min-w-[260px] min-h-[150px] bg-black/20 flex items-center justify-center"
+              {/* Ready: video/image */}
+              {gen.status === 'ready' && (
+                <div
+                  style={{
+                    position: 'relative', cursor: 'pointer',
+                    borderRadius: 18, borderBottomLeftRadius: 4,
+                    overflow: 'hidden', background: '#111',
+                  }}
                   onClick={() => { onSelectVideo(gen); showHaptic('light'); }}
                 >
                   {gen.isMotion ? (
-                    <img 
-                      src={gen.videoUrl} 
-                      className="w-full aspect-video object-cover animate-ken-burns scale-110"
-                      alt="Segment"
+                    <img
+                      src={gen.videoUrl}
+                      alt="Generated frame"
+                      style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
-                    <video 
-                      src={gen.videoUrl} 
-                      className="w-full aspect-video object-cover"
-                      muted
-                      loop
-                      playsInline
-                      onMouseOver={e => e.target.play()}
-                      onMouseOut={e => {e.target.pause(); e.target.currentTime = 0}}
+                    <video
+                      src={gen.videoUrl}
+                      style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+                      muted loop playsInline
                     />
                   )}
-                  <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-100 group-hover:bg-black/40 transition-all">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 shadow-2xl">
-                      <Play className="text-white fill-white ml-1" size={20} />
+                  {/* Play overlay */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.1)',
+                  }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                    }}>
+                      <Play color="white" fill="white" size={20} style={{ transform: 'translateX(1px)' }} />
                     </div>
                   </div>
-                  
-                  {/* Delete overlay */}
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDeleteVideo(idx); showHaptic('warning'); }}
-                    className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={16} className="text-red-400" />
-                  </button>
+                  {/* Timestamp overlay */}
+                  <div style={{
+                    position: 'absolute', bottom: 8, right: 8,
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    borderRadius: 20, padding: '2px 8px',
+                  }}>
+                    <span style={{ fontSize: 10, color: 'white', fontWeight: 500 }}>
+                      {new Date(gen.id).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 </div>
-              ) : gen.status === 'draft' ? (
-                <div className="flex flex-col gap-3 p-1 min-w-[240px]">
-                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
-                    <span className="font-bold text-sm text-tg-accent uppercase tracking-tight">{gen.sceneName || `Сцена`}</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onDeleteVideo(idx); showHaptic('warning'); }} 
-                      className="p-1.5 hover:bg-white/10 rounded-lg text-red-400 transition-colors"
+              )}
+
+              {/* Draft: editable scene card */}
+              {gen.status === 'draft' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.08)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Wand2 size={12} color="var(--tg-accent)" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tg-accent)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        {gen.sceneName || `Сцена ${idx + 1}`}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteVideo(idx); showHaptic('warning'); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'rgba(255,59,48,0.5)' }}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-tg-hint uppercase font-bold tracking-wider opacity-60">Визуал</label>
-                      <textarea 
-                        value={gen.prompt}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div>
+                      <label style={{ fontSize: 9, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 1, opacity: 0.5 }}>Визуал</label>
+                      <textarea
+                        value={gen.prompt || ''}
                         onChange={(e) => onUpdateVideo?.(gen.id, { prompt: e.target.value })}
-                        className="w-full bg-white/[0.03] text-[14px] p-2.5 rounded-xl border border-white/[0.05] resize-none outline-none focus:border-tg-accent/40 transition-all custom-scrollbar"
-                        rows={3}
-                        placeholder="Опишите кадр..."
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-tg-hint uppercase font-bold tracking-wider opacity-60">Голос</label>
-                      <textarea 
-                        value={gen.voiceText}
-                        onChange={(e) => onUpdateVideo?.(gen.id, { voiceText: e.target.value })}
-                        className="w-full bg-white/[0.03] text-[14px] p-2.5 rounded-xl border border-white/[0.05] resize-none outline-none focus:border-tg-accent/40 transition-all custom-scrollbar"
                         rows={2}
-                        placeholder="Текст для озвучки..."
+                        style={{
+                          width: '100%', background: 'rgba(255,255,255,0.06)',
+                          border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 10,
+                          padding: '8px 10px', color: 'white', fontSize: 13, resize: 'none',
+                          outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                        }}
                       />
                     </div>
+                    {gen.voiceText !== undefined && (
+                      <div>
+                        <label style={{ fontSize: 9, color: 'var(--tg-hint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 1, opacity: 0.5 }}>Озвучка</label>
+                        <textarea
+                          value={gen.voiceText || ''}
+                          onChange={(e) => onUpdateVideo?.(gen.id, { voiceText: e.target.value })}
+                          rows={2}
+                          style={{
+                            width: '100%', background: 'rgba(255,255,255,0.06)',
+                            border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 10,
+                            padding: '8px 10px', color: 'white', fontSize: 13, resize: 'none',
+                            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <div className="flex items-center gap-3 px-2 py-1 min-w-[180px]">
+              )}
+
+              {/* Loading/Processing state */}
+              {!['ready', 'draft'].includes(gen.status) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {gen.status === 'error' ? (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                        <AlertCircle className="text-red-400" size={18} />
-                      </div>
-                      <span className="text-sm font-medium">Ошибка генерации</span>
-                    </>
-                  ) : gen.status === 'queued' ? (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-tg-hint/10 flex items-center justify-center">
-                        <Clock className="text-tg-hint animate-pulse" size={18} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">В очереди</span>
-                        <span className="text-[10px] opacity-40">Ожидание GPU...</span>
-                      </div>
-                    </>
-                  ) : gen.status === 'generating_image' ? (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-tg-accent/10 flex items-center justify-center">
-                        <Sparkles className="animate-pulse text-tg-accent" size={18} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">Рисую кадр</span>
-                        <span className="text-[10px] opacity-60">Шаг 1 из 3...</span>
-                      </div>
-                    </>
-                  ) : gen.status === 'animating' ? (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-tg-accent/10 flex items-center justify-center">
-                        <Wand2 className="animate-spin text-tg-accent" size={18} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">Оживляю фото</span>
-                        <span className="text-[10px] opacity-60">Шаг 2 из 3...</span>
-                      </div>
-                    </>
-                  ) : gen.status === 'voiceover' ? (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-tg-accent/10 flex items-center justify-center">
-                        <Mic className="animate-bounce text-tg-accent" size={18} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">Озвучиваю</span>
-                        <span className="text-[10px] opacity-60">Шаг 3 из 3...</span>
-                      </div>
-                    </>
+                    <span style={{ fontSize: 14, color: '#ff3b30' }}>{STATUS_LABELS.error}</span>
                   ) : (
                     <>
-                      <div className="w-8 h-8 rounded-full bg-tg-accent/10 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-tg-accent" size={18} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">Генерирую</span>
-                        <span className="text-[10px] opacity-60">Пожалуйста, подождите...</span>
+                      <Loader2 size={18} color="var(--tg-accent)" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>
+                          {STATUS_LABELS[gen.status] || 'Обрабатываю...'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--tg-hint)', opacity: 0.6, marginTop: 1 }}>
+                          пожалуйста, подождите
+                        </div>
                       </div>
                     </>
                   )}
@@ -181,16 +254,10 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo }) 
         ))}
       </AnimatePresence>
 
-      {/* Welcome Message */}
-      {generations.length === 0 && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-20 select-none">
-          <div className="w-20 h-20 bg-tg-accent/10 rounded-full flex items-center justify-center mb-6">
-            <MessageSquare size={40} className="text-tg-accent" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Начните проект</h2>
-          <p className="text-[15px] max-w-xs leading-relaxed">Отправьте описание сценария или первой сцены, чтобы запустить магию.</p>
-        </div>
-      )}
+      {/* Bottom padding */}
+      <div style={{ height: 8 }} />
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
