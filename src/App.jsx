@@ -119,7 +119,7 @@ function App() {
       setActionPrompt('');
       if (isMobile) setIsPanelOpen(false);
     } catch (err) {
-      showAlert('Ошибка создания сценария');
+      showAlert(`Ошибка сценария: ${err.message || 'неизвестно'}`);
     } finally {
       setIsLoading(false);
     }
@@ -225,7 +225,7 @@ function App() {
         status: 'ready' 
       } : g));
     } catch (err) {
-      showAlert('Ошибка генерации');
+      showAlert(`Ошибка генерации: ${err.message || 'неизвестно'}`);
     } finally {
       setIsLoading(false);
     }

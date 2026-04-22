@@ -59,7 +59,7 @@ export const generateTTS = (text, voiceType = 'neural-male') => {
  * Generates a scenario (scenes) without an API key using Pollinations Text
  */
 export const generateScenario = async (idea, style, personCount) => {
-  const systemPrompt = `You are a cinematic screenwriter. Generate a JSON array of 5 scenes for a video based on the user's idea and style.
+  const systemPrompt = `You are a cinematic screenwriter. Generate a JSON array of 5 scenes for a video.
 Style: ${style}
 Number of people: ${personCount}
 
@@ -72,36 +72,64 @@ Output ONLY a RAW JSON array. NO markdown blocks.
   }
 ]`;
 
-  try {
-    // Using GET with fetch for maximum compatibility in TMA environment
-    const fullPrompt = `Idea: ${idea}`;
-    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?system=${encodeURIComponent(systemPrompt)}&json=true&seed=${Math.floor(Math.random() * 10000)}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    
-    let content = await response.text();
-    
-    // Aggressive parsing: extract everything between first [ and last ]
-    const jsonStart = content.indexOf('[');
-    const jsonEnd = content.lastIndexOf(']') + 1;
-    
-    if (jsonStart === -1 || jsonEnd === 0) {
-      // Fallback for non-array responses
-      const objStart = content.indexOf('{');
-      const objEnd = content.lastIndexOf('}') + 1;
-      if (objStart !== -1) {
-        const obj = JSON.parse(content.substring(objStart, objEnd));
-        return Array.isArray(obj.scenes) ? obj.scenes : (Array.isArray(obj) ? [obj] : []);
+  const extractJSON = (text) => {
+    try {
+      const jsonStart = text.indexOf('[');
+      const jsonEnd = text.lastIndexOf(']') + 1;
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        return JSON.parse(text.substring(jsonStart, jsonEnd));
       }
-      throw new Error('No valid JSON found in response');
+      // Try object if array fails
+      const objStart = text.indexOf('{');
+      const objEnd = text.lastIndexOf('}') + 1;
+      if (objStart !== -1 && objEnd > objStart) {
+        const obj = JSON.parse(text.substring(objStart, objEnd));
+        return Array.isArray(obj.scenes) ? obj.scenes : (Array.isArray(obj) ? [obj] : [obj]);
+      }
+    } catch (e) {
+      console.error('JSON Extraction Partial Failure:', e);
+    }
+    return null;
+  };
+
+  try {
+    // Attempt 1: OpenAI-compatible POST (Better for complex instructions)
+    try {
+      const response = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Idea: ${idea}` }
+          ],
+          model: 'openai',
+          json: true
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        const scenes = extractJSON(content);
+        if (scenes) return scenes;
+      }
+    } catch (e) {
+      console.warn('POST Scenario failed, falling back to GET...', e);
     }
 
-    const cleanContent = content.substring(jsonStart, jsonEnd);
-    const scenes = JSON.parse(cleanContent);
-    return Array.isArray(scenes) ? scenes : (scenes.scenes || []);
+    // Attempt 2: Simple GET Fallback
+    const fullPrompt = `${systemPrompt}\n\nProject Idea: ${idea}`;
+    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt.substring(0, 1500))}?json=true`;
+    
+    const response = await fetch(url);
+    const content = await response.text();
+    const scenes = extractJSON(content);
+    
+    if (scenes) return scenes;
+    throw new Error('No valid scenario generated after fallback');
   } catch (error) {
-    console.error('Scenario Generation Error:', error);
+    console.error('Scenario Generation Final Error:', error);
     throw error;
   }
 };
