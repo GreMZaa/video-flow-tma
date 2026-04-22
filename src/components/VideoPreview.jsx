@@ -23,7 +23,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
     showHaptic('heavy');
     
     try {
-      const videoUrls = generatedFrames.map(f => f.videoUrl);
+      const videoUrls = generatedFrames.map(f => ({ url: f.videoUrl, isMotion: f.isMotion }));
       const outputUrl = await stitchVideos(videoUrls, (msg, val) => {
         setProgressMsg(msg);
         setProgressVal(val);
@@ -169,7 +169,7 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                         <div className="relative flex-shrink-0">
                           <div className="overflow-hidden rounded-2xl ring-2 ring-white/5 group-hover:ring-tg-button/50 transition-all duration-500 relative">
                             <motion.img 
-                              src={frame.imageUrl || frame.videoUrl} 
+                              src={frame.videoUrl || frame.imageUrl} 
                               className="w-20 h-14 object-cover" 
                               alt="" 
                               animate={frame.isMotion ? {

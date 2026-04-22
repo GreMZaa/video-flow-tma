@@ -146,12 +146,12 @@ function App() {
         setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, imageUrl, status: 'generating_video' } : g));
 
         // 3. Generate Video (Direct Sync with Fallback)
-        const { url: videoUrl, isMotion } = await generateVideoSegment(imageUrl, item.prompt);
+        const { url, isMotion } = await generateVideoSegment(imageUrl, item.prompt);
         
         // 4. Final update
         setGenerations(prev => prev.map(g => g.id === item.id ? { 
           ...g, 
-          videoUrl, 
+          videoUrl: url, 
           isMotion,
           status: 'ready' 
         } : g));
@@ -219,10 +219,10 @@ function App() {
     if (isMobile) setIsPanelOpen(false);
 
     try {
-      const { url: videoUrl, isMotion } = await generateVideoSegment(null, `${characterPrompt}, ${actionPrompt}`);
+      const { url, isMotion } = await generateVideoSegment(null, `${characterPrompt}, ${actionPrompt}`);
       setGenerations(prev => prev.map(g => g.id === newGen.id ? { 
         ...g, 
-        videoUrl,
+        videoUrl: url,
         isMotion,
         status: 'ready' 
       } : g));
