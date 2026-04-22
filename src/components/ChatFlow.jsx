@@ -9,7 +9,7 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, ac
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [generations]);
+  }, [generations.length]);
 
   return (
     <div 
@@ -144,9 +144,6 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, ac
           <p className="text-sm max-w-xs">Отправьте описание сцены, чтобы начать генерацию контента.</p>
         </div>
       )}
-      
-      {/* Spacer for input bar */}
-      <div className="h-20" />
     </div>
   );
 };

@@ -29,6 +29,10 @@ const NativeInput = ({
     }
   };
 
+  React.useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
   return (
     <div className="tg-input-bar relative">
       {/* Action Bar for Drafts */}
@@ -68,7 +72,7 @@ const NativeInput = ({
             ref={textareaRef}
             rows={1}
             value={value}
-            onChange={(e) => { onChange(e.target.value); adjustHeight(); }}
+            onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={mode === 'workflow' ? "Опишите сценарий (например: история о коте)..." : "Опишите сцену..."}
             className="tg-input-field resize-none py-2.5 max-h-[120px] custom-scrollbar overflow-y-auto block"
