@@ -83,9 +83,9 @@ const SettingsModal = ({
                     onChange={(e) => setAspectRatio(e.target.value)}
                     className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm appearance-none"
                   >
-                    <option value="16:9">Lanscape (16:9)</option>
-                    <option value="9:16">Portrait (9:16)</option>
-                    <option value="1:1">Square (1:1)</option>
+                    <option value="16:9">Горизонтальный (16:9)</option>
+                    <option value="9:16">Вертикальный (9:16)</option>
+                    <option value="1:1">Квадратный (1:1)</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -117,7 +117,7 @@ const SettingsModal = ({
             <div className="space-y-6">
               <SectionTitle icon={<Key size={16}/>} title="Дополнительно" />
               <div className="space-y-3">
-                <label className="text-xs text-tg-hint ml-1">Premium API Key (Optional)</label>
+                <label className="text-xs text-tg-hint ml-1">Премиум API ключ (SiliconFlow)</label>
                 <input
                   type="password"
                   value={apiKey}
@@ -127,7 +127,7 @@ const SettingsModal = ({
                 />
                 <p className="text-[10px] text-tg-hint flex items-center gap-1.5 opacity-60">
                   <ShieldCheck size={12} className="text-emerald-500" />
-                  Хранится только на вашем устройстве
+                  Ключ хранится только локально на вашем устройстве
                 </p>
               </div>
             </div>

@@ -41,7 +41,7 @@ export const useProjectManager = () => {
     if (activeProjectId) localStorage.setItem('vf_activeProjectId', activeProjectId);
   }, [activeProjectId]);
 
-  const updateActiveProject = (updates) => {
+  const updateActiveProject = (updates, moveToTop = false) => {
     setProjects(prev => {
       const activeProject = prev.find(p => p.id === activeProjectId);
       if (!activeProject) return prev;
@@ -49,9 +49,14 @@ export const useProjectManager = () => {
       const newFields = typeof updates === 'function' ? updates(activeProject) : updates;
       const updatedProject = { ...activeProject, ...newFields, lastUpdate: new Date().toISOString() };
       
-      // Move updated project to top
-      const filtered = prev.filter(p => p.id !== activeProjectId);
-      return [updatedProject, ...filtered];
+      if (moveToTop) {
+        // Move updated project to top (for major changes like new generations or selection)
+        const filtered = prev.filter(p => p.id !== activeProjectId);
+        return [updatedProject, ...filtered];
+      } else {
+        // Keep current order (for simple edits like renaming)
+        return prev.map(p => p.id === activeProjectId ? updatedProject : p);
+      }
     });
   };
 

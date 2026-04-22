@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { generateImage, generateVideoSegment, generateScenario, generateTTS, stitchVideos } from '../services/api';
 
-export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, showAlert) => {
+export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, showAlert, apiKey = null) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -49,17 +49,18 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
           }));
         };
 
-        // Step 3.1: Generate Image
+        // Step 1: Generating Image
         setStatus(item.id, 'generating_image');
         const imageUrl = generateImage(`${item.style}, ${item.prompt}`);
-        // We set the image immediately so user sees the "Visual" is ready
+        
+        // Step 2: Animating (passing apiKey)
         setStatus(item.id, 'animating', { imageUrl });
-
-        // Step 3.2: Generate Video (Animate)
-        const { url, isMotion } = await generateVideoSegment(imageUrl, item.prompt);
+        // Use a more descriptive prompt for animation
+        const animationPrompt = `${item.style}. ${item.prompt}. Cinematic movement, high detail.`;
+        const { url, isMotion } = await generateVideoSegment(imageUrl, animationPrompt, apiKey);
+        
+        // Step 3: Voiceover
         setStatus(item.id, 'voiceover', { videoUrl: url, isMotion });
-
-        // Step 3.3: TTS (Voiceover)
         if (item.voiceText) {
           try {
             await generateTTS(item.voiceText, selectedVoice);
@@ -83,11 +84,14 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
   const handleExportProject = async () => {
     if (!activeProject) return;
     const readyVideos = activeProject.generations
-      .filter(g => g.videoUrl && (g.status === 'ready' || g.status === 'generating_video'))
-      .map(g => ({ url: g.videoUrl || g.imageUrl, isMotion: g.isMotion || true }));
+      .filter(g => (g.videoUrl || g.imageUrl) && (g.status === 'ready' || g.status === 'generating_video'))
+      .map(g => ({ 
+        url: g.videoUrl || g.imageUrl, 
+        isMotion: g.isMotion ?? (!g.videoUrl && !!g.imageUrl) 
+      }));
 
     if (readyVideos.length === 0) {
-      showAlert('Нет готовых видео');
+      showAlert('Нет готовых кадров для экспорта');
       return;
     }
 
@@ -101,10 +105,12 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
       a.click();
       showHaptic('success');
     } catch (err) {
-      showAlert('Ошибка экспорта');
+      console.error('Export Error:', err);
+      showAlert(`Ошибка экспорта: ${err.message || 'неизвестная ошибка'}`);
       showHaptic('error');
     } finally {
       setIsExporting(false);
+      setExportProgress(0);
     }
   };
 
@@ -126,7 +132,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
     updateActiveProject(p => ({ generations: [...p.generations, newGen] }));
 
     try {
-      const { url, isMotion } = await generateVideoSegment(null, `${activeProject.characterPrompt}, ${actionPrompt}`);
+      const { url, isMotion } = await generateVideoSegment(null, `${activeProject.characterPrompt}, ${actionPrompt}`, apiKey);
       updateActiveProject(p => ({ 
         generations: p.generations.map(g => g.id === newGen.id ? { ...g, videoUrl: url, isMotion, status: 'ready' } : g)
       }));
@@ -140,6 +146,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
       setIsLoading(false);
     }
   };
+
 
   return {
     isLoading,

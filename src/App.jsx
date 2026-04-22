@@ -10,7 +10,10 @@ import { Settings, Sparkles, Layers, ChevronLeft, Plus, Edit3 } from 'lucide-rea
 import { VOICE_OPTIONS } from './services/api';
 
 function App() {
-  const { tg, showHaptic, showAlert } = useTelegram();
+  const { tg, showHaptic, showAlert, showConfirm } = useTelegram();
+  const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
+  const [actionPrompt, setActionPrompt] = useState('');
+
   const {
     projects,
     activeProject,
@@ -30,10 +33,7 @@ function App() {
     handleAutomateProject,
     handleExportProject,
     handleSingleCreate
-  } = useVideoFlow(activeProject, updateActiveProject, showHaptic, showAlert);
-
-  const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
-  const [actionPrompt, setActionPrompt] = useState('');
+  } = useVideoFlow(activeProject, updateActiveProject, showHaptic, showAlert, apiKey);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [view, setView] = useState('list'); // 'list' | 'chat'
   const [projectMode, setProjectMode] = useState('creative');
@@ -94,6 +94,8 @@ function App() {
     setView('chat');
     setIsEditMode(false);
     showHaptic('light');
+    // Move selected project to top
+    updateActiveProject({}, true);
   };
 
   const handleCreateProject = () => {
@@ -127,97 +129,118 @@ function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'var(--tg-bg)', color: 'var(--tg-text)' }}>
 
-      {/* ── Single App Header ──────────────────────────────────────────────────── */}
-      <div
-        className="glass-header shrink-0 z-30"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          paddingLeft: 16,
-          paddingRight: 16,
-          paddingBottom: 10,
-          paddingTop: isMobile ? 'env(safe-area-inset-top, 44px)' : 12,
-          minHeight: isMobile ? 90 : 56,
-          position: 'relative',
-        }}
-      >
-        {/* MOBILE: Chat view header */}
-        {isMobile && view === 'chat' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+      {/* Header logic: List view header is managed by ProjectList component */}
+      {view === 'chat' && (
+        <div
+          className="glass-header shrink-0 z-30"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingLeft: 8,
+            paddingRight: 8,
+            paddingBottom: 6,
+            paddingTop: isMobile ? 'env(safe-area-inset-top, 44px)' : 8,
+            minHeight: isMobile ? 88 : 60,
+            position: 'relative',
+          }}
+        >
+        {/* Left Side: Back or Edit */}
+        <div style={{ width: 80, display: 'flex', alignItems: 'center' }}>
+          {view === 'chat' ? (
             <button
               onClick={handleBackToList}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--tg-accent)', padding: '4px 4px 4px 0' }}
+              className="ios-btn"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2, 
+                color: 'var(--tg-accent)', 
+                marginLeft: -8, 
+                background: 'none', 
+                border: 'none',
+                padding: '8px 12px'
+              }}
             >
-              <ChevronLeft size={28} strokeWidth={2.5} />
-              <span style={{ fontSize: 17, fontWeight: 500 }}>Проекты</span>
+              <ChevronLeft size={32} strokeWidth={2.5} />
+              <span style={{ fontSize: 17, fontWeight: 400, marginLeft: -4 }}>Назад</span>
             </button>
-
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, marginLeft: 4 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #50a2e9, #2b5278)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontWeight: 700, fontSize: 16, flexShrink: 0
-              }}>
-                {activeProject?.name?.[0]?.toUpperCase() || 'П'}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2 }}>
-                  {activeProject?.name || 'Проект'}
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--tg-hint)' }}>
-                  {activeProject?.generations?.length || 0} кадров
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              style={{ color: 'var(--tg-accent)', padding: 8 }}
-            >
-              <Settings size={22} />
-            </button>
-          </div>
-        ) : (
-          /* MOBILE: List header | DESKTOP: unified header */
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative' }}>
+          ) : (
             <button
               onClick={() => setIsEditMode(prev => !prev)}
+              className="ios-btn"
               style={{
                 color: isEditMode ? '#ff3b30' : 'var(--tg-accent)',
-                fontSize: 17, fontWeight: 500, minWidth: 60
+                fontSize: 17, fontWeight: 400,
+                background: 'none', border: 'none',
+                padding: '8px 16px'
               }}
             >
               {isEditMode ? 'Готово' : 'Изм.'}
             </button>
+          )}
+        </div>
 
-            <span style={{
-              position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-              fontWeight: 700, fontSize: 17, pointerEvents: 'none'
-            }}>
-              Проекты
-            </span>
-
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-              {isDesktop && (
-                <button
-                  onClick={() => setIsSettingsOpen(true)}
-                  style={{ color: 'var(--tg-hint)', padding: 6 }}
-                >
-                  <Settings size={22} />
-                </button>
-              )}
-              <button
-                onClick={handleCreateProject}
-                style={{ color: 'var(--tg-accent)', padding: 4 }}
-              >
-                <Plus size={26} strokeWidth={2.5} />
-              </button>
+        {/* Center: Title / Project Info */}
+        <div 
+          onClick={() => view === 'chat' && setIsSettingsOpen(true)}
+          style={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            cursor: view === 'chat' ? 'pointer' : 'default',
+            textAlign: 'center'
+          }}
+        >
+          {view === 'chat' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.2 }}>
+                {activeProject?.name || 'Проект'}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--tg-hint)', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                {isLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--tg-accent)' }}>
+                    печатает
+                    <span className="typing-container">
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </span>
+                  </span>
+                ) : `${activeProject?.generations?.length || 0} кадров`}
+              </span>
             </div>
-          </div>
-        )}
+          ) : (
+            <span style={{ fontWeight: 600, fontSize: 17 }}>
+              {isDesktop ? 'Video Flow' : 'Чаты'}
+            </span>
+          )}
+        </div>
+
+        {/* Right Side: Settings or New Project */}
+        <div style={{ width: 80, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+          {view === 'list' ? (
+            <button
+              onClick={handleCreateProject}
+              className="ios-btn"
+              style={{ color: 'var(--tg-accent)', background: 'none', border: 'none', padding: 4 }}
+            >
+              <Plus size={30} strokeWidth={2} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="ios-btn"
+              style={{ color: 'var(--tg-accent)', background: 'none', border: 'none', padding: 4 }}
+            >
+              <Settings size={22} />
+            </button>
+          )}
+        </div>
       </div>
+      )}
 
       {/* ── Main Content ────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'row', background: 'var(--tg-bg)' }}>
@@ -238,8 +261,13 @@ function App() {
               projects={projects}
               activeProjectId={activeProjectId}
               isEditMode={isEditMode}
+              setIsEditMode={setIsEditMode}
               onSelectProject={handleSelectProject}
               onDeleteProject={handleDeleteProject}
+              onNewProject={handleCreateProject}
+              showConfirm={showConfirm}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              onShowContacts={() => showAlert('Разработчик: @ssharonovv\nВерсия: 1.2.0 Production')}
             />
           </div>
         )}

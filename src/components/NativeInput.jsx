@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Wand2, Paperclip, Smile, Mic, Play, Download } from 'lucide-react';
+import { Send, Wand2, Paperclip, Smile, Mic, Play, Download, Loader2 } from 'lucide-react';
 
 const NativeInput = ({
   value,
@@ -41,74 +41,95 @@ const NativeInput = ({
   return (
     <div style={{
       flexShrink: 0,
-      background: 'rgba(28, 28, 29, 0.92)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderTop: '0.5px solid rgba(255,255,255,0.1)',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      background: 'rgba(28, 28, 30, 0.85)',
+      backdropFilter: 'blur(30px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+      borderTop: '0.5px solid rgba(255, 255, 255, 0.08)',
+      paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+      paddingTop: 8,
+      zIndex: 100
     }}>
-
-      {/* Action Buttons (Run / Export) */}
-      {(showRunButton || showExportButton) && (
-        <div style={{ display: 'flex', gap: 8, padding: '10px 12px 0' }}>
-          {showRunButton && (
-            <button
-              onClick={onRunGeneration}
-              disabled={isLoading}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '11px 0', borderRadius: 22, border: 'none', cursor: 'pointer',
-                background: 'var(--tg-accent)', color: 'white', fontSize: 15, fontWeight: 600,
-              }}
-            >
-              <Play size={16} fill="white" /> Запустить генерацию
-            </button>
-          )}
-          {showExportButton && (
-            <button
-              onClick={onExport}
-              disabled={isExporting}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '11px 0', borderRadius: 22, border: 'none', cursor: 'pointer',
-                background: '#34c759', color: 'white', fontSize: 15, fontWeight: 600,
-              }}
-            >
-              <Download size={16} /> Скачать видео
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Input Row */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, padding: '8px 8px 8px' }}>
-
-        {/* Mode Toggle Button */}
-        <button
+      {/* Mode Indicator & Action Row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px 10px' }}>
+        <div 
           onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
-          title={mode === 'workflow' ? 'Режим: Сценарий (нажми чтобы переключить)' : 'Режим: Кадр (нажми чтобы переключить)'}
-          style={{
-            padding: '8px 10px',
-            color: mode === 'workflow' ? 'var(--tg-accent)' : 'var(--tg-hint)',
-            background: 'none', border: 'none', cursor: 'pointer',
-            flexShrink: 0, transition: 'color 0.2s',
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+            padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)',
+            border: '0.5px solid rgba(255,255,255,0.1)'
           }}
         >
-          {mode === 'workflow'
-            ? <Wand2 size={26} strokeWidth={2} />
-            : <Paperclip size={26} strokeWidth={2} />
-          }
+          <div style={{ 
+            width: 8, height: 8, borderRadius: '50%', 
+            background: mode === 'workflow' ? '#50a2e9' : '#ff9500',
+            boxShadow: `0 0 8px ${mode === 'workflow' ? '#50a2e9' : '#ff9500'}`
+          }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {mode === 'workflow' ? 'Сценарий' : 'Кадр'}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {showRunButton && (
+            <motion.button
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={onRunGeneration}
+              disabled={isLoading}
+              className="ios-btn"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 14, border: 'none',
+                background: 'var(--tg-accent)', color: 'white', fontSize: 12, fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(0,122,255,0.3)',
+              }}
+            >
+              <Play size={12} fill="currentColor" /> Создать все
+            </motion.button>
+          )}
+          {showExportButton && (
+            <motion.button
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={onExport}
+              disabled={isExporting}
+              className="ios-btn"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 14, border: 'none',
+                background: '#34c759', color: 'white', fontSize: 12, fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(52,199,89,0.3)',
+              }}
+            >
+              {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+              Экспорт
+            </motion.button>
+          )}
+        </div>
+      </div>
+
+      {/* Input Row */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, padding: '0 8px' }}>
+        <button
+          onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
+          style={{
+            padding: '8px 8px',
+            color: mode === 'workflow' ? 'var(--tg-accent)' : 'var(--tg-hint)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <Wand2 size={24} strokeWidth={2.5} />
         </button>
 
-        {/* Text Area Container */}
         <div style={{
           flex: 1,
-          background: 'rgba(255,255,255,0.09)',
+          background: 'rgba(255,255,255,0.07)',
           borderRadius: 22,
           padding: '6px 12px',
           display: 'flex', alignItems: 'flex-end', gap: 6,
-          border: '0.5px solid rgba(255,255,255,0.07)',
-          minHeight: 44,
+          border: '0.5px solid rgba(255,255,255,0.08)',
+          minHeight: 40,
         }}>
           <textarea
             ref={textareaRef}
@@ -116,74 +137,48 @@ const NativeInput = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === 'workflow' ? 'Опишите сценарий...' : 'Опишите кадр...'}
+            placeholder={mode === 'workflow' ? 'Напишите сценарий...' : 'Сообщение'}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: 'white', fontSize: 16, lineHeight: '22px',
-              padding: '2px 0', resize: 'none', maxHeight: 120,
+              color: 'white', fontSize: 17, lineHeight: '22px',
+              padding: '6px 0', resize: 'none', maxHeight: 160,
               fontFamily: 'inherit',
+              WebkitAppearance: 'none',
             }}
           />
-          <button style={{ marginBottom: 2, background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--tg-hint)', flexShrink: 0 }}>
+          <button 
+            onClick={() => alert('Стикеры и эмодзи скоро!')}
+            style={{ marginBottom: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--tg-hint)', flexShrink: 0 }}
+          >
             <Smile size={22} strokeWidth={2} />
           </button>
         </div>
 
-        {/* Send / Mic Button */}
-        <div style={{ padding: '0 4px', flexShrink: 0 }}>
-          <AnimatePresence mode="wait">
-            {canSend ? (
-              <motion.button
-                key="send"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                whileTap={{ scale: 0.85 }}
-                onClick={onSend}
-                disabled={isLoading}
-                style={{
-                  width: 42, height: 42, borderRadius: '50%',
-                  background: 'var(--tg-accent)', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', boxShadow: '0 2px 12px rgba(0,122,255,0.4)',
-                }}
-              >
-                <Send size={18} strokeWidth={2.5} style={{ transform: 'translateX(1px)' }} />
-              </motion.button>
+        <div style={{ padding: '0 2px', flexShrink: 0 }}>
+          <button
+            onClick={onSend}
+            disabled={!canSend}
+            className="ios-btn"
+            style={{
+              width: 38, height: 38, borderRadius: '50%',
+              background: canSend ? 'var(--tg-accent)' : 'rgba(255,255,255,0.05)', 
+              border: 'none', cursor: canSend ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: canSend ? 'white' : 'rgba(255,255,255,0.2)',
+              transition: 'all 0.2s'
+            }}
+          >
+            {isLoading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : canSend ? (
+              <Send size={18} strokeWidth={2.5} style={{ transform: 'translateX(1px)' }} />
             ) : (
-              <motion.button
-                key="mic"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                style={{
-                  width: 42, height: 42, borderRadius: '50%',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--tg-hint)',
-                }}
-              >
-                <Mic size={26} strokeWidth={2} />
-              </motion.button>
+              <div onClick={() => alert('Голосовой ввод скоро!')} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mic size={22} strokeWidth={2} />
+              </div>
             )}
-          </AnimatePresence>
+          </button>
         </div>
-      </div>
-
-      {/* Mode Dots Indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 5, paddingBottom: 8 }}>
-        <div style={{
-          height: 3, borderRadius: 3, transition: 'all 0.3s',
-          width: mode === 'creative' ? 20 : 6,
-          background: mode === 'creative' ? 'var(--tg-accent)' : 'rgba(255,255,255,0.15)',
-        }} />
-        <div style={{
-          height: 3, borderRadius: 3, transition: 'all 0.3s',
-          width: mode === 'workflow' ? 20 : 6,
-          background: mode === 'workflow' ? 'var(--tg-accent)' : 'rgba(255,255,255,0.15)',
-        }} />
       </div>
     </div>
   );
