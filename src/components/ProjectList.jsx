@@ -1,8 +1,7 @@
-import React from 'react';
-import { Plus, Search, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, CheckCircle2, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ProjectList = ({ projects, onSelectProject, onCreateProject, activeProjectId }) => {
+const ProjectList = ({ projects, onSelectProject, onCreateProject, onDeleteProject, activeProjectId }) => {
   return (
     <div className="flex flex-col h-full bg-tg-header border-r border-white/5 w-full md:max-w-xs shrink-0 z-20">
       {/* Header */}
@@ -30,17 +29,22 @@ const ProjectList = ({ projects, onSelectProject, onCreateProject, activeProject
             <motion.div 
               key={project.id}
               whileTap={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-              onClick={() => onSelectProject(project.id)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-white/[0.03] ${isActive ? 'bg-tg-accent/10' : ''}`}
+              className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-white/[0.03] ${isActive ? 'bg-tg-accent/10' : ''}`}
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 overflow-hidden shadow-inner relative ${isActive ? 'ring-2 ring-tg-accent ring-offset-2 ring-offset-tg-bg' : ''} bg-gradient-to-br from-tg-accent to-[#2b5278]`}>
+              <div 
+                onClick={() => onSelectProject(project.id)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 overflow-hidden shadow-inner relative ${isActive ? 'ring-2 ring-tg-accent ring-offset-2 ring-offset-tg-bg' : ''} bg-gradient-to-br from-tg-accent to-[#2b5278]`}
+              >
                 {project.name[0].toUpperCase()}
                 {isActive && (
                   <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-tg-bg rounded-full" />
                 )}
               </div>
               
-              <div className="flex-1 min-w-0">
+              <div 
+                onClick={() => onSelectProject(project.id)}
+                className="flex-1 min-w-0"
+              >
                 <div className="flex justify-between items-baseline mb-0.5">
                   <h3 className={`text-[15px] font-bold truncate ${isActive ? 'text-tg-accent' : 'text-tg-text'}`}>
                     {project.name}
@@ -54,6 +58,19 @@ const ProjectList = ({ projects, onSelectProject, onCreateProject, activeProject
                   {lastGen ? (lastGen.sceneName || lastGen.prompt) : 'Пустой проект...'}
                 </p>
               </div>
+
+              {/* Delete Button - Visible on hover or active */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Удалить проект "${project.name}"?`)) {
+                    onDeleteProject(project.id);
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 p-2 text-tg-hint hover:text-red-400 transition-all"
+              >
+                <Trash2 size={18} />
+              </button>
             </motion.div>
           );
         })}

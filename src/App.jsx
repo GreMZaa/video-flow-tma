@@ -33,7 +33,7 @@ function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
   const [actionPrompt, setActionPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [view, setView] = useState(activeProjectId ? 'chat' : 'list');
+  const [view, setView] = useState('list');
   const [projectMode, setProjectMode] = useState('creative'); // 'creative' or 'workflow'
   const [personCount, setPersonCount] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
@@ -137,6 +137,7 @@ function App() {
             activeProjectId={activeProjectId}
             onSelectProject={(id) => { selectProject(id); setView('chat'); showHaptic('light'); }}
             onCreateProject={() => { createProject(); setView('chat'); showHaptic('medium'); }}
+            onDeleteProject={(id) => { deleteProject(id); showHaptic('warning'); }}
           />
         )}
 

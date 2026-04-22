@@ -19,7 +19,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
         style: activeProject.characterPrompt,
         status: 'draft'
       }));
-      updateActiveProject({ generations: [...newScenes, ...activeProject.generations] });
+      updateActiveProject({ generations: [...activeProject.generations, ...newScenes] });
       return true;
     } catch (err) {
       showAlert(`Ошибка сценария: ${err.message}`);
@@ -83,8 +83,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
   const handleExportProject = async () => {
     if (!activeProject) return;
     const readyVideos = activeProject.generations
-      .filter(g => g.videoUrl && (g.status === 'ready' || g.status === 'generating_video')) // include generating_video if it's just image
-      .reverse() 
+      .filter(g => g.videoUrl && (g.status === 'ready' || g.status === 'generating_video'))
       .map(g => ({ url: g.videoUrl || g.imageUrl, isMotion: g.isMotion || true }));
 
     if (readyVideos.length === 0) {
@@ -124,7 +123,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
       timestamp: new Date().toISOString()
     };
 
-    updateActiveProject(p => ({ generations: [newGen, ...p.generations] }));
+    updateActiveProject(p => ({ generations: [...p.generations, newGen] }));
 
     try {
       const { url, isMotion } = await generateVideoSegment(null, `${activeProject.characterPrompt}, ${actionPrompt}`);
