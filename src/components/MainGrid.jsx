@@ -19,13 +19,25 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
     >
       {/* Thumbnail Area */}
       <div className="relative aspect-video bg-black/40 overflow-hidden cursor-pointer" onClick={onPlay}>
-        {item.imageUrl && (
-          <img 
-            src={item.imageUrl} 
+        <AnimatePresence mode="wait">
+          <motion.img 
+            key={item.videoUrl || item.imageUrl}
+            src={item.videoUrl || item.imageUrl} 
             alt={item.prompt} 
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+            initial={{ scale: 1.2, opacity: 0 }}
+            animate={{ 
+              scale: item.isMotion ? [1, 1.15] : 1,
+              opacity: 1,
+              x: item.isMotion ? [0, -15] : 0,
+            }}
+            transition={{ 
+              scale: { duration: 8, repeat: Infinity, repeatType: "reverse", ease: "linear" },
+              x: { duration: 12, repeat: Infinity, repeatType: "reverse", ease: "linear" },
+              opacity: { duration: 0.5 }
+            }}
+            className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
           />
-        )}
+        </AnimatePresence>
         
         {/* Hover Overlays */}
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500" />

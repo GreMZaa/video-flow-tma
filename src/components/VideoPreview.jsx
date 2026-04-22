@@ -167,8 +167,26 @@ const VideoPreview = ({ isOpen, onClose, frames }) => {
                         className="flex items-center gap-5 group"
                       >
                         <div className="relative flex-shrink-0">
-                          <div className="overflow-hidden rounded-2xl ring-2 ring-white/5 group-hover:ring-tg-button/50 transition-all duration-500">
-                            <img src={frame.imageUrl} className="w-20 h-14 object-cover scale-110 group-hover:scale-100 transition-transform duration-700" alt="" />
+                          <div className="overflow-hidden rounded-2xl ring-2 ring-white/5 group-hover:ring-tg-button/50 transition-all duration-500 relative">
+                            <motion.img 
+                              src={frame.imageUrl || frame.videoUrl} 
+                              className="w-20 h-14 object-cover" 
+                              alt="" 
+                              animate={frame.isMotion ? {
+                                scale: [1, 1.2],
+                              } : {}}
+                              transition={{
+                                duration: 5,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                ease: "linear"
+                              }}
+                            />
+                            {frame.isMotion && (
+                              <div className="absolute inset-0 bg-tg-button/10 flex items-center justify-center">
+                                <Sparkles size={8} className="text-tg-button animate-pulse" />
+                              </div>
+                            )}
                           </div>
                           <div className="absolute -top-3 -left-3 w-7 h-7 bg-white text-black rounded-xl flex items-center justify-center text-[11px] font-black shadow-2xl ring-1 ring-black/5">
                             {i + 1}

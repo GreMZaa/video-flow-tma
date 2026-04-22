@@ -145,13 +145,14 @@ function App() {
         
         setGenerations(prev => prev.map(g => g.id === item.id ? { ...g, imageUrl, status: 'generating_video' } : g));
 
-        // 3. Generate Video (Direct Sync)
-        const videoUrl = await generateVideoSegment(imageUrl, item.prompt);
+        // 3. Generate Video (Direct Sync with Fallback)
+        const { url: videoUrl, isMotion } = await generateVideoSegment(imageUrl, item.prompt);
         
         // 4. Final update
         setGenerations(prev => prev.map(g => g.id === item.id ? { 
           ...g, 
           videoUrl, 
+          isMotion,
           status: 'ready' 
         } : g));
       } catch (err) {
@@ -169,7 +170,7 @@ function App() {
     const readyVideos = generations
       .filter(g => g.videoUrl && g.status === 'ready')
       .reverse() // Keep original order if generations are unshifted
-      .map(g => g.videoUrl);
+      .map(g => ({ url: g.videoUrl, isMotion: g.isMotion }));
 
     if (readyVideos.length === 0) {
       showAlert('Нет готовых видео для склейки');
@@ -218,10 +219,11 @@ function App() {
     if (isMobile) setIsPanelOpen(false);
 
     try {
-      const videoUrl = await generateVideoSegment(null, `${characterPrompt}, ${actionPrompt}`);
+      const { url: videoUrl, isMotion } = await generateVideoSegment(null, `${characterPrompt}, ${actionPrompt}`);
       setGenerations(prev => prev.map(g => g.id === newGen.id ? { 
         ...g, 
         videoUrl,
+        isMotion,
         status: 'ready' 
       } : g));
     } catch (err) {

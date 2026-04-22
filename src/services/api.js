@@ -135,7 +135,7 @@ Output ONLY a RAW JSON array. NO markdown blocks.
 };
 
 /**
- * Generates a video segment using Pollinations Video (Synchronous Blob)
+ * Generates a video segment. Fallbacks to a static image with motion metadata if 401.
  */
 export const generateVideoSegment = async (imageRef, motionPrompt) => {
   try {
@@ -144,13 +144,29 @@ export const generateVideoSegment = async (imageRef, motionPrompt) => {
     const url = `https://gen.pollinations.ai/video/${encodedPrompt}?seed=${Math.floor(Math.random() * 10000)}&model=p-video`;
     
     const response = await fetch(url);
+    
+    // Status 401 means they gated the API. We fallback to "Motion Image".
+    if (response.status === 401) {
+      console.warn('Video API 401 - Falling back to Motion Image');
+      return { 
+        url: generateImage(motionPrompt), 
+        isMotion: true 
+      };
+    }
+
     if (!response.ok) throw new Error(`Video gen failed: ${response.status}`);
     
     const videoBlob = await response.blob();
-    return URL.createObjectURL(videoBlob);
+    return { 
+      url: URL.createObjectURL(videoBlob), 
+      isMotion: false 
+    };
   } catch (error) {
-    console.error('Video Generation Error:', error);
-    throw error;
+    console.warn('Video Generation Error, using fallback:', error);
+    return { 
+      url: generateImage(motionPrompt), 
+      isMotion: true 
+    };
   }
 };
 
@@ -165,7 +181,11 @@ export const getVideoStatus = async (requestId) => {
 /**
  * Client-side video stitching using FFmpeg.wasm
  */
-export const stitchVideos = async (videoUrls, onProgress) => {
+/**
+ * Client-side video stitching using FFmpeg.wasm.
+ * Supports both real MP4 segments and "Motion Images" (JPEG/PNG).
+ */
+export const stitchVideos = async (segments, onProgress) => {
   const ffmpeg = new FFmpeg();
   onProgress('Загрузка FFmpeg...', 10);
   
@@ -177,18 +197,48 @@ export const stitchVideos = async (videoUrls, onProgress) => {
 
   onProgress('Подготовка потоков...', 30);
 
-  const inputFiles = [];
-  for (let i = 0; i < videoUrls.length; i++) {
-    const fileName = `input${i}.mp4`;
-    await ffmpeg.writeFile(fileName, await fetchFile(videoUrls[i]));
-    inputFiles.push(`file '${fileName}'`);
+  const concatList = [];
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const isImage = segment.isMotion || !segment.url.includes('blob:');
+    const inputName = `input${i}.${isImage ? 'jpg' : 'mp4'}`;
+    const outputName = `segment${i}.mp4`;
+
+    await ffmpeg.writeFile(inputName, await fetchFile(segment.url));
+
+    if (isImage) {
+      onProgress(`Анимация кадра ${i+1}...`, 30 + (i / segments.length * 30));
+      // Convert Image to a 3s video with Cinematic Zoom ("Ken Burns")
+      // We use a safe version of zoompan that works in most FFmpeg.wasm builds
+      await ffmpeg.exec([
+        '-loop', '1', 
+        '-i', inputName, 
+        '-vf', "scale=1280:720,zoompan=z='min(zoom+0.0015,1.5)':d=75:x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2':s=1280x720", 
+        '-c:v', 'libx264', 
+        '-t', '3', 
+        '-pix_fmt', 'yuv420p', 
+        outputName
+      ]);
+    } else {
+      // It's already a video, just copy/transcode to ensure consistency
+       await ffmpeg.exec([
+        '-i', inputName, 
+        '-vf', 'scale=1280:720', 
+        '-c:v', 'libx264', 
+        '-t', '3', 
+        '-pix_fmt', 'yuv420p', 
+        outputName
+      ]);
+    }
+    concatList.push(`file '${outputName}'`);
   }
 
-  onProgress('Склейка (Zero-Key Render)...', 60);
-  // Pollinations videos are usually H.264, so -c copy is safe and very fast
+  await ffmpeg.writeFile('concat.txt', concatList.join('\n'));
+
+  onProgress('Финальная склейка...', 80);
   await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat.txt', '-c', 'copy', 'output.mp4']);
 
-  onProgress('Финализация...', 90);
+  onProgress('Финализация...', 95);
   const data = await ffmpeg.readFile('output.mp4');
   onProgress('Готово!', 100);
   return URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
