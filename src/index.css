@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --tg-bg: var(--tg-theme-bg-color, #050505);
+  --tg-bg: var(--tg-theme-bg-color, #1c1c1d);
   --tg-text: var(--tg-theme-text-color, #f8fafc);
-  --tg-hint: var(--tg-theme-hint-color, #94a3b8);
-  --tg-link: var(--tg-theme-link-color, #38bdf8);
-  --tg-button: var(--tg-theme-button-color, #38bdf8);
+  --tg-hint: var(--tg-theme-hint-color, #8e8e93);
+  --tg-link: var(--tg-theme-link-color, #007aff);
+  --tg-button: var(--tg-theme-button-color, #007aff);
   --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
-  --tg-secondary: var(--tg-theme-secondary-bg-color, #0a0a0a);
-  --tg-header: var(--tg-theme-header-bg-color, #050505);
+  --tg-secondary: var(--tg-theme-secondary-bg-color, #000000);
+  --tg-header: var(--tg-theme-header-bg-color, #1c1c1d);
+  --tg-accent: #3390ec;
+  --tg-bubble-out: #2b5278;
+  --tg-bubble-in: #18222d;
 }
 
 @theme {
@@ -16,6 +19,8 @@
   --color-tg-text: var(--tg-text);
   --color-tg-button: var(--tg-button);
   --color-tg-secondary: var(--tg-secondary);
+  --color-tg-accent: var(--tg-accent);
+  --color-tg-hint: var(--tg-hint);
 }
 
 * {
@@ -27,27 +32,50 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100dvh; /* Dynamic viewport height */
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--tg-bg);
   color: var(--tg-text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.01em; /* Subtle tracking-tight default */
-  
-  /* Prevent browser refresh and TMA pull-to-close at the edge */
   overscroll-behavior: none;
 }
 
+/* Telegram Chat List Items */
+.tg-item {
+  @apply flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-200 active:bg-white/[0.05];
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.05);
+}
+
+.tg-avatar {
+  @apply w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 overflow-hidden;
+}
+
+/* Telegram Message Bubbles */
+.tg-bubble {
+  @apply max-w-[85%] rounded-[1.25rem] px-4 py-2 relative text-sm leading-relaxed;
+}
+
+.tg-bubble-in {
+  @apply self-start bg-[#212d3b] text-white rounded-bl-sm;
+}
+
+.tg-bubble-out {
+  @apply self-end bg-[#2b5278] text-white rounded-br-sm;
+}
+
+.tg-bubble-media {
+  @apply p-1 overflow-hidden;
+}
+
+/* Glass System (Preserved for Premium feel) */
 .glass {
   background: rgba(255, 255, 255, 0.01);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
-/* Liquid Glass with elite refraction and inner glow */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.025);
   backdrop-filter: blur(35px);
@@ -55,134 +83,33 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 
     inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.2),
     0 20px 40px -15px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
 }
 
-.liquid-glass::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
-  pointer-events: none;
-  animation: liquidRotate 20s linear infinite;
+/* Native Input Stickiness */
+.tg-input-bar {
+  @apply fixed bottom-0 left-0 right-0 p-2 bg-[#17212b] border-t border-white/5 z-50;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
 }
 
-@keyframes liquidRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.tg-input-field {
+  @apply w-full bg-white/[0.05] border-none rounded-full px-4 py-2 text-sm focus:ring-0 placeholder:text-tg-hint/50;
 }
 
-.shadow-glow {
-  box-shadow: 0 0 25px -5px var(--tg-button);
+.custom-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-.shadow-glow-amber {
-  box-shadow: 0 0 25px -5px #fbbf24;
-}
-
-.frosted-glass {
-  background: rgba(10, 10, 10, 0.75);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.flow-card {
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.flow-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-input, textarea {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--tg-text);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border-radius: 1rem;
-}
-
-input:focus, textarea:focus {
-  border-color: var(--tg-button);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 20px -10px var(--tg-button);
-  outline: none;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--tg-button) 0%, #0ea5e9 100%);
-  color: var(--tg-button-text);
-  padding: 14px 28px;
-  border-radius: 1.25rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  text-transform: uppercase;
-}
-
-.btn-primary:active {
-  transform: scale(0.96);
-  filter: brightness(1.1);
-}
-
-/* Telegram smooth appearance */
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.05), transparent 40%),
-              radial-gradient(circle at bottom left, rgba(56, 189, 248, 0.03), transparent 30%);
-}
-
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.drawer-shadow {
-  box-shadow: 0 -20px 50px rgba(0,0,0,0.6);
-}
-
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
-  touch-action: pan-y;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-.debug-banner {
-  animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
-}
-
-.tracking-tighter {
-  letter-spacing: -0.05em;
-}
-
-.font-black {
-  font-weight: 950;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(210,100%,10%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,100%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(240,100%,5%,1) 0, transparent 50%);
 }

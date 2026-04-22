@@ -1,8 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Key, ShieldCheck } from 'lucide-react';
+import { X, Key, ShieldCheck, Type, Palette, Monitor, Users, Volume2 } from 'lucide-react';
 
-const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
+const SettingsModal = ({ 
+  apiKey, setApiKey, 
+  onClose,
+  projectName, setProjectName,
+  characterPrompt, setCharacterPrompt,
+  personCount, setPersonCount,
+  aspectRatio, setAspectRatio,
+  selectedVoice, setSelectedVoice,
+  voiceOptions
+}) => {
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -21,47 +30,117 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 30 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-sm liquid-glass rounded-[2rem] p-8 shadow-2xl z-10 border-white/20"
+          className="relative w-full max-w-lg bg-[#1c1c1d] rounded-[2rem] shadow-2xl z-10 border border-white/10 flex flex-col max-h-[90vh]"
         >
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-black flex items-center gap-3 tracking-tighter">
-              <Key size={24} className="text-tg-button shadow-glow" />
-              Настройки
+          {/* Fixed Header */}
+          <div className="p-6 flex justify-between items-center border-b border-white/5">
+            <h3 className="text-xl font-bold flex items-center gap-3">
+              Настройки проекта
             </h3>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-tg-hint">
               <X size={24} />
             </button>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <label className="block text-[10px] font-black uppercase text-tg-hint tracking-[0.2em] ml-1 opacity-60">
-                Premium API Key (Optional)
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 font-mono text-xs tracking-[0.3em] focus:ring-2 focus:ring-tg-button/20 transition-all"
-              />
-              <p className="text-[9px] font-bold text-tg-hint mt-2 ml-1 flex items-center gap-1.5 uppercase tracking-wider opacity-50">
-                <ShieldCheck size={12} className="text-emerald-500" />
-                Хранится локально на вашем устройстве
-              </p>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+            
+            {/* General Settings */}
+            <div className="space-y-6">
+              <SectionTitle icon={<Type size={16}/>} title="Общие" />
+              <div className="space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-xs text-tg-hint ml-1">Название проекта</label>
+                    <input 
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="Имя проекта..."
+                      className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs text-tg-hint ml-1 flex items-center gap-2">
+                      <Palette size={14}/> Глобальный стиль (Character Prompt)
+                    </label>
+                    <textarea 
+                      value={characterPrompt}
+                      onChange={(e) => setCharacterPrompt(e.target.value)}
+                      placeholder="Напр: Pushkin in claymation style..."
+                      className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm min-h-[80px]"
+                    />
+                 </div>
+              </div>
             </div>
 
-            <div className="bg-tg-button/5 p-5 rounded-2xl border border-tg-button/10">
-              <p className="text-[11px] leading-relaxed text-tg-button font-medium">
-                По умолчанию мы используем <span className="font-black italic">Universal Free Engine</span>. Ваше приложение всегда будет работать бесплатно! Добавьте ключ (SiliconFlow или Fal.ai) только если вам нужно ультра-качество видео.
-              </p>
+            {/* Production Settings */}
+            <div className="space-y-6">
+              <SectionTitle icon={<Monitor size={16}/>} title="Производство" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-tg-hint ml-1 flex items-center gap-2"><Monitor size={12}/> Формат</label>
+                  <select 
+                    value={aspectRatio}
+                    onChange={(e) => setAspectRatio(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm appearance-none"
+                  >
+                    <option value="16:9">Lanscape (16:9)</option>
+                    <option value="9:16">Portrait (9:16)</option>
+                    <option value="1:1">Square (1:1)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-tg-hint ml-1 flex items-center gap-2"><Users size={12}/> Персонажи</label>
+                  <input 
+                    type="number"
+                    value={personCount}
+                    onChange={(e) => setPersonCount(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-tg-hint ml-1 flex items-center gap-2"><Volume2 size={12}/> Голос (TTS)</label>
+                <select 
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full bg-white/5 border border-white/5 px-4 py-3 rounded-xl text-sm"
+                >
+                  {voiceOptions.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
+            {/* Advanced / Keys */}
+            <div className="space-y-6">
+              <SectionTitle icon={<Key size={16}/>} title="Дополнительно" />
+              <div className="space-y-3">
+                <label className="text-xs text-tg-hint ml-1">Premium API Key (Optional)</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 font-mono text-xs"
+                />
+                <p className="text-[10px] text-tg-hint flex items-center gap-1.5 opacity-60">
+                  <ShieldCheck size={12} className="text-emerald-500" />
+                  Хранится только на вашем устройстве
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Fixed Footer */}
+          <div className="p-6 border-t border-white/5">
             <button
               onClick={onClose}
-              className="w-full py-4 btn-primary rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-tg-button/20 active:scale-95 transition-transform"
+              className="w-full py-4 bg-tg-accent text-white rounded-2xl font-bold active:scale-95 transition-transform"
             >
-              Сохранить
+              Применить настройки
             </button>
           </div>
         </motion.div>
@@ -69,5 +148,12 @@ const SettingsModal = ({ apiKey, setApiKey, onClose }) => {
     </AnimatePresence>
   );
 };
+
+const SectionTitle = ({ icon, title }) => (
+  <div className="flex items-center gap-2 opacity-80">
+    <div className="text-tg-accent">{icon}</div>
+    <span className="text-[10px] font-bold uppercase tracking-widest">{title}</span>
+  </div>
+);
 
 export default SettingsModal;
