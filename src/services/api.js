@@ -156,6 +156,11 @@ export const generateVideoSegment = async (imageRef, motionPrompt) => {
 
     if (!response.ok) throw new Error(`Video gen failed: ${response.status}`);
     
+    const contentType = response.headers.get('content-type');
+    if (contentType && !contentType.includes('video')) {
+       throw new Error(`Invalid content type: ${contentType}`);
+    }
+
     const videoBlob = await response.blob();
     return { 
       url: URL.createObjectURL(videoBlob), 

@@ -69,7 +69,13 @@ function App() {
 
   // Project Helper
   const updateActiveProject = (updates) => {
-    setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, ...updates, lastUpdate: new Date().toISOString() } : p));
+    setProjects(prev => prev.map(p => {
+      if (p.id === activeProjectId) {
+        const newFields = typeof updates === 'function' ? updates(p) : updates;
+        return { ...p, ...newFields, lastUpdate: new Date().toISOString() };
+      }
+      return p;
+    }));
   };
 
   const handleCreateScenario = async () => {
@@ -103,15 +109,16 @@ function App() {
     setIsLoading(true);
     showHaptic('medium');
 
-    const updatedGens = [...activeProject.generations];
+    updateActiveProject(p => ({
+      generations: p.generations.map(g => g.status === 'draft' ? { ...g, status: 'queued' } : g)
+    }));
+
     for (const item of drafts) {
       try {
         const setStatus = (id, status, fields = {}) => {
-          const idx = updatedGens.findIndex(g => g.id === id);
-          if (idx !== -1) {
-            updatedGens[idx] = { ...updatedGens[idx], status, ...fields };
-            updateActiveProject({ generations: [...updatedGens] });
-          }
+          updateActiveProject(p => ({
+            generations: p.generations.map(g => g.id === id ? { ...g, status, ...fields } : g)
+          }));
         };
 
         setStatus(item.id, 'generating');
@@ -123,6 +130,9 @@ function App() {
         setStatus(item.id, 'ready', { videoUrl: url, isMotion });
       } catch (err) {
         console.error('Automation error', err);
+        updateActiveProject(p => ({
+          generations: p.generations.map(g => g.id === item.id ? { ...g, status: 'error' } : g)
+        }));
       }
     }
     setIsLoading(false);
@@ -175,16 +185,15 @@ function App() {
       timestamp: new Date().toISOString()
     };
 
-    const updatedGens = [newGen, ...activeProject.generations];
-    updateActiveProject({ generations: updatedGens });
+    updateActiveProject(p => ({ generations: [newGen, ...p.generations] }));
     const currentPrompt = actionPrompt;
     setActionPrompt('');
 
     try {
       const { url, isMotion } = await generateVideoSegment(null, `${activeProject.characterPrompt}, ${currentPrompt}`);
-      updateActiveProject({ 
-        generations: updatedGens.map(g => g.id === newGen.id ? { ...g, videoUrl: url, isMotion, status: 'ready' } : g)
-      });
+      updateActiveProject(p => ({ 
+        generations: p.generations.map(g => g.id === newGen.id ? { ...g, videoUrl: url, isMotion, status: 'ready' } : g)
+      }));
     } catch (err) {
       showAlert(`Ошибка: ${err.message}`);
     } finally {

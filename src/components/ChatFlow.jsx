@@ -112,11 +112,19 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, ac
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 px-2">
+                <div className="flex items-center gap-3 px-2 py-1">
                   {gen.status === 'error' ? (
                     <>
                       <AlertCircle className="text-red-400 shrink-0" size={18} />
                       <span className="text-sm">Ошибка генерации</span>
+                    </>
+                  ) : gen.status === 'queued' ? (
+                    <>
+                      <Clock className="text-tg-hint shrink-0 animate-pulse" size={18} />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">В очереди</span>
+                        <span className="text-[10px] opacity-60">Ожидание начала...</span>
+                      </div>
                     </>
                   ) : (
                     <>
