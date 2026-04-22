@@ -37,7 +37,6 @@ html, body {
   
   /* Prevent browser refresh and TMA pull-to-close at the edge */
   overscroll-behavior: none;
-  touch-action: none; 
 }
 
 .glass {

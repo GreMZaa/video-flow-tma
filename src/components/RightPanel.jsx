@@ -236,8 +236,11 @@ const RightPanel = ({
           />
         )}
         {/* Drawer */}
-        <div className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) bg-tg-bg rounded-t-[3rem] border-t border-white/10 shadow-2xl ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="w-16 h-1.5 bg-white/10 rounded-full mx-auto mt-4 mb-2" onClick={onClose} />
+        <div 
+          className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) bg-tg-bg rounded-t-[3rem] border-t border-white/10 shadow-2xl ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ height: '90dvh' }}
+        >
+          <div className="w-16 h-1.5 bg-white/10 rounded-full mx-auto mt-4 mb-2 shrink-0" onClick={onClose} />
           {panelContent}
         </div>
       </>
