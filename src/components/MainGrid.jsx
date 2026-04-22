@@ -20,23 +20,35 @@ const VideoCard = ({ item, onDelete, onPlay }) => {
       {/* Thumbnail Area */}
       <div className="relative aspect-video bg-black/40 overflow-hidden cursor-pointer" onClick={onPlay}>
         <AnimatePresence mode="wait">
-          <motion.img 
-            key={item.videoUrl || item.imageUrl}
-            src={item.videoUrl || item.imageUrl} 
-            alt={item.prompt} 
-            initial={{ scale: 1.2, opacity: 0 }}
-            animate={{ 
-              scale: item.isMotion ? [1, 1.15] : 1,
-              opacity: 1,
-              x: item.isMotion ? [0, -15] : 0,
-            }}
-            transition={{ 
-              scale: { duration: 8, repeat: Infinity, repeatType: "reverse", ease: "linear" },
-              x: { duration: 12, repeat: Infinity, repeatType: "reverse", ease: "linear" },
-              opacity: { duration: 0.5 }
-            }}
-            className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
-          />
+          {item.isMotion || !item.videoUrl ? (
+            <motion.img 
+              key={item.videoUrl || item.imageUrl}
+              src={item.videoUrl || item.imageUrl} 
+              alt={item.prompt} 
+              initial={{ scale: 1.2, opacity: 0 }}
+              animate={{ 
+                scale: item.isMotion ? [1, 1.15] : 1,
+                opacity: 1,
+                x: item.isMotion ? [0, -15] : 0,
+              }}
+              transition={{ 
+                scale: { duration: 8, repeat: Infinity, repeatType: "reverse", ease: "linear" },
+                x: { duration: 12, repeat: Infinity, repeatType: "reverse", ease: "linear" },
+                opacity: { duration: 0.5 }
+              }}
+              className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
+            />
+          ) : (
+            <video 
+              key={item.videoUrl}
+              src={item.videoUrl} 
+              muted 
+              playsInline 
+              autoPlay 
+              loop 
+              className="w-full h-full object-cover opacity-90 group-hover:opacity-100" 
+            />
+          )}
         </AnimatePresence>
         
         {/* Hover Overlays */}

@@ -400,13 +400,28 @@ function App() {
            >
              <X size={24} />
            </button>
-           <div className="w-full max-w-5xl aspect-video glass rounded-[40px] overflow-hidden shadow-2xl ring-1 ring-white/10">
+           <div className="w-full max-w-5xl aspect-video glass rounded-[40px] overflow-hidden shadow-2xl ring-1 ring-white/10 relative">
               {activeVideo.videoUrl ? (
-                <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                <>
+                  {activeVideo.isMotion ? (
+                    <motion.img 
+                      src={activeVideo.videoUrl} 
+                      className="w-full h-full object-cover"
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        x: [0, -30, 0],
+                        y: [0, -15, 0]
+                      }}
+                      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    />
+                  ) : (
+                    <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                  )}
+                </>
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
                   <div className="w-16 h-16 border-4 border-tg-button/30 border-t-tg-button rounded-full animate-spin" />
-                  <p className="text-tg-button font-bold animate-pulse text-sm">ГЕНЕРАЦИЯ ВИДЕО...</p>
+                  <p className="text-tg-button font-bold animate-pulse text-sm uppercase tracking-widest">ГЕНЕРАЦИЯ МАГИИ...</p>
                 </div>
               )}
            </div>
