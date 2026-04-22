@@ -198,6 +198,13 @@ function App() {
     showHaptic('light');
   };
 
+  const handleUpdateVideo = (id, updates) => {
+    if (!activeProject) return;
+    updateActiveProject({
+      generations: activeProject.generations.map(g => g.id === id ? { ...g, ...updates } : g)
+    });
+  };
+
   const handleCreateProject = () => {
     const newId = Date.now().toString();
     const newProject = {
@@ -276,6 +283,7 @@ function App() {
                   generations={activeProject.generations}
                   onSelectVideo={setActiveVideo}
                   onDeleteVideo={handleDelete}
+                  onUpdateVideo={handleUpdateVideo}
                   activeProjectId={activeProjectId}
                 />
                 <NativeInput 

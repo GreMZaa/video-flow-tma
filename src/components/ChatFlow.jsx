@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Trash2, Clock, CheckCircle2, AlertCircle, Loader2, MessageSquare } from 'lucide-react';
 
-const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, activeProjectId }) => {
+const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, activeProjectId }) => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -23,30 +23,32 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, activeProjectId }
       <AnimatePresence initial={false}>
         {generations.map((gen, idx) => (
           <div key={gen.id} className="flex flex-col gap-2">
-            {/* User Message (Prompt) */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              className="tg-bubble tg-bubble-out"
-            >
-              <div className="flex justify-between items-start gap-4">
-                <p className="text-sm">{gen.prompt}</p>
-                <div className="flex items-center gap-1 opacity-50 text-[10px] self-end mt-1">
-                  <span>{new Date(gen.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <CheckCircle2 size={10} />
+            {/* User Message (Prompt) - Hidden for drafts to keep chat clean */}
+            {gen.status !== 'draft' && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                className="tg-bubble tg-bubble-out"
+              >
+                <div className="flex justify-between items-start gap-4">
+                  <p className="text-sm">{gen.prompt}</p>
+                  <div className="flex items-center gap-1 opacity-50 text-[10px] self-end mt-1">
+                    <span>{new Date(gen.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <CheckCircle2 size={10} />
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
 
-            {/* Bot Response (Media/Status) */}
+            {/* Bot Response (Media/Status/Draft) */}
             <motion.div 
               initial={{ opacity: 0, x: -20, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              className={`tg-bubble tg-bubble-in max-w-[90%] md:max-w-[70%] ${gen.status === 'ready' ? 'tg-bubble-media' : 'py-3'}`}
+              className={`tg-bubble tg-bubble-in max-w-[90%] md:max-w-[75%] ${gen.status === 'ready' ? 'tg-bubble-media' : 'py-3'}`}
             >
               {gen.status === 'ready' ? (
                 <div 
-                  className="relative group cursor-pointer overflow-hidden rounded-[1rem]"
+                  className="relative group cursor-pointer overflow-hidden rounded-[1rem] min-w-[260px] min-h-[150px] bg-black/20 flex items-center justify-center"
                   onClick={() => onSelectVideo(gen)}
                 >
                   {gen.isMotion ? (
@@ -79,6 +81,35 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, activeProjectId }
                   >
                     <Trash2 size={16} className="text-red-400" />
                   </button>
+                </div>
+              ) : gen.status === 'draft' ? (
+                <div className="flex flex-col gap-3 p-1 min-w-[240px]">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <span className="font-bold text-sm text-tg-accent">{gen.sceneName || `Сцена`}</span>
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteVideo(idx); }} className="p-1 hover:bg-white/10 rounded-md text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-tg-hint uppercase font-bold tracking-wider">Кадр (Визуал)</label>
+                    <textarea 
+                      value={gen.prompt}
+                      onChange={(e) => onUpdateVideo?.(gen.id, { prompt: e.target.value })}
+                      className="w-full bg-black/20 text-sm p-2 rounded-lg border border-white/10 resize-none outline-none focus:border-tg-accent/50 transition-colors custom-scrollbar"
+                      rows={3}
+                      placeholder="Опишите, что должно быть в кадре..."
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-tg-hint uppercase font-bold tracking-wider">Озвучка (Голос)</label>
+                    <textarea 
+                      value={gen.voiceText}
+                      onChange={(e) => onUpdateVideo?.(gen.id, { voiceText: e.target.value })}
+                      className="w-full bg-black/20 text-sm p-2 rounded-lg border border-white/10 resize-none outline-none focus:border-tg-accent/50 transition-colors custom-scrollbar"
+                      rows={2}
+                      placeholder="Текст для озвучки..."
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 px-2">

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Send, Sparkles, Wand2, Paperclip, Mic, Settings2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const NativeInput = ({ 
   value, 
@@ -30,7 +30,28 @@ const NativeInput = ({
   };
 
   return (
-    <div className="tg-input-bar">
+    <div className="tg-input-bar relative">
+      {/* Action Bar for Drafts */}
+      <AnimatePresence>
+        {hasDrafts && (
+          <motion.div 
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 10, opacity: 0 }}
+            className="absolute -top-14 left-0 right-0 flex justify-center z-10"
+          >
+            <button
+              onClick={onAutomate}
+              disabled={isLoading}
+              className="bg-tg-accent text-[#ffffff] px-6 py-2.5 rounded-full font-medium text-sm flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.5)] active:scale-95 transition-all disabled:opacity-50"
+            >
+              <Sparkles size={16} />
+              Подтвердить сценарий и запустить
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-4xl mx-auto flex items-end gap-2 px-2">
         {/* Attachment/Mode button */}
         <button 
@@ -56,19 +77,6 @@ const NativeInput = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1">
-          {hasDrafts && !value && (
-            <motion.button
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              onClick={onAutomate}
-              disabled={isLoading}
-              className="p-2 text-tg-accent rounded-full hover:bg-tg-accent/10 transition-colors disabled:opacity-50"
-              title="Запустить автоматизацию всех черновиков"
-            >
-              <Sparkles size={24} />
-            </motion.button>
-          )}
-
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onSend}
