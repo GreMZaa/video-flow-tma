@@ -15,6 +15,7 @@ STRICT RULES:
 2. The language for "scene_name" and "voice_text" is ALWAYS Russian.
 3. The language for "image_prompt" is ALWAYS English.
 4. Output ONLY the raw JSON array. No explanations, no markdown blocks.
+5. Ensure the "image_prompt" SPECIFICALLY mentions the main subject and style from the user's idea (e.g. if the user says "Pushkin", the prompt MUST include "Alexander Pushkin").
 
 Format:
 [
@@ -242,23 +243,22 @@ const extractJSON = (text) => {
 /**
  * Generates a scenario (scenes) without an API key using Pollinations Text
  */
-export const generateScenario = async (idea, style, personCount) => {
-  const FALLBACK_SCENES = [
-    {
-      "image_prompt": "Cinematic wide shot, epic lighting, high detail, 8k.",
-      "voice_text": "Мир начинает меняться прямо на наших глазах.",
-      "scene_name": "Начало"
-    },
-    {
-      "image_prompt": "Close up shot, atmospheric, shallow depth of field.",
-      "voice_text": "Каждое движение наполнено глубоким смыслом.",
-      "scene_name": "Кульминация"
-    }
-  ];
-
-  try {
-    console.log('Generating scenario for:', idea, 'Style:', style);
+    console.warn('Generating scenario for:', idea, 'Style:', style);
     
+    // Create a dynamic fallback based on the idea
+    const dynamicFallback = [
+      {
+        "image_prompt": `Cinematic shot of ${idea}, high detail, 8k, ${style || ''}`.trim(),
+        "voice_text": `${idea}. Погружаемся в эту историю.`,
+        "scene_name": "Начало"
+      },
+      {
+        "image_prompt": `Close up of ${idea}, emotional atmosphere, ${style || ''}`.trim(),
+        "voice_text": "Каждое мгновение здесь наполнено особым смыслом.",
+        "scene_name": "Развитие"
+      }
+    ];
+
     // Attempt 1: POST to /openai (more stable for complex tasks)
     try {
       const response = await fetchWithTimeout('https://text.pollinations.ai/openai', {
@@ -267,69 +267,48 @@ export const generateScenario = async (idea, style, personCount) => {
         body: JSON.stringify({
           messages: [
             { role: 'system', content: SCENARIO_SYSTEM_PROMPT },
-            { role: 'user', content: `Тема: "${idea}". Стиль: ${style || 'Cinematic'}. Количество персонажей: ${personCount || 1}. Сгенерируй ровно 5 сцен в виде JSON массива.` }
+            { role: 'user', content: `Тема: "${idea}". Стиль: ${style || 'Cinematic'}. Количество персонажей: ${personCount || 1}. Сгенерируй ровно 5 подробных сцен.` }
           ],
-          model: 'openai-large',
+          model: 'openai',
           seed: Math.floor(Math.random() * 1000000)
         })
-      }, 60000); // 60s timeout for complex scenarios
+      }, 60000); 
       
       if (response.ok) {
         const data = await response.json();
         const rawContent = data?.choices?.[0]?.message?.content;
-        console.log('Raw content type:', typeof rawContent, '| Preview:', JSON.stringify(rawContent)?.substring(0, 120));
         
-        // Pollinations sometimes returns already-parsed object when model returns JSON
         let scenes = null;
         if (Array.isArray(rawContent)) {
           scenes = rawContent;
-        } else if (rawContent && typeof rawContent === 'object') {
-          // Could be {scenes: [...]} or similar
-          scenes = rawContent.scenes || rawContent.data || rawContent.items || null;
-          if (!scenes && Array.isArray(Object.values(rawContent)[0])) {
-            scenes = Object.values(rawContent)[0];
-          }
         } else if (typeof rawContent === 'string') {
           scenes = extractJSON(rawContent);
         }
         
-        if (scenes && scenes.length > 0) {
-          console.log('Scenario generated successfully via POST, scenes:', scenes.length);
-          return scenes;
-        } else {
-          console.warn('POST returned OK but no valid scenes array. Raw:', rawContent);
-        }
-      } else {
-        const errBody = await response.text().catch(() => '');
-        console.warn('POST scenario failed with status:', response.status, errBody.substring(0, 200));
+        if (scenes && scenes.length > 0) return scenes;
       }
     } catch (e) {
       console.warn('POST scenario attempt failed:', e.message);
     }
 
-    // Attempt 2: GET Fallback (plain text mode)
+    // Attempt 2: GET Fallback
     try {
-      const shortPrompt = `You are an AI Video Director. Output ONLY a valid JSON array of exactly 5 scenes for: "${idea}". Each scene: {"scene_name": "(Russian)", "image_prompt": "(English, detailed)", "voice_text": "(Russian, 1-2 sentences)"}. Output nothing else.`;
+      const shortPrompt = `JSON array of 5 detailed scenes for video about: "${idea}". Style: ${style}. Format: [{"scene_name": "RU", "image_prompt": "EN", "voice_text": "RU"}]. No prose.`;
       const url = `https://text.pollinations.ai/${encodeURIComponent(shortPrompt)}?model=openai&cache=false&seed=${Date.now()}`;
       const response = await fetchWithTimeout(url, {}, 45000);
       if (response.ok) {
         const content = await response.text();
-        console.log('GET response preview:', content.substring(0, 150));
         const scenes = extractJSON(content);
-        if (scenes && scenes.length > 0) {
-          console.log('Scenario generated successfully via GET');
-          return scenes;
-        }
+        if (scenes && scenes.length > 0) return scenes;
       }
     } catch (e) {
       console.warn('GET scenario attempt failed:', e.message);
     }
 
-    console.warn('All real-time scenario attempts failed. Using static fallback.');
-    return FALLBACK_SCENES;
+    return dynamicFallback;
   } catch (error) {
     console.error('Scenario Generation Final Error:', error);
-    return FALLBACK_SCENES;
+    return dynamicFallback;
   }
 };
 
