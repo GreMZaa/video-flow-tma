@@ -72,13 +72,14 @@ function App() {
   // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!actionPrompt.trim() || isLoading) return;
-    
+    const prompt = actionPrompt;
+    setActionPrompt(''); // Clear immediately — don't wait for async
     const success = projectMode === 'workflow'
-      ? await handleCreateScenario(actionPrompt, personCount)
-      : await handleSingleCreate(actionPrompt, aspectRatio);
-      
-    if (success) {
-      setActionPrompt('');
+      ? await handleCreateScenario(prompt, personCount)
+      : await handleSingleCreate(prompt, aspectRatio);
+    // If failed, restore the prompt so user doesn't lose their text
+    if (!success) {
+      setActionPrompt(prompt);
     }
   };
 

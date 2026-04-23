@@ -221,34 +221,7 @@ input, textarea {
   transform: scale(1.05);
 }
 
-.chat-bg-pattern {
-  background-color: #000;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
 
-.typing-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 12px;
-  margin-left: 4px;
-}
-
-.typing-dot {
-  width: 4px;
-  height: 4px;
-  background-color: var(--tg-accent);
-  border-radius: 50%;
-  animation: tg-typing 1.2s infinite ease-in-out;
-}
-
-@keyframes tg-typing {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.4); opacity: 1; }
-}
 
 .glass-header::after {
   content: "";
