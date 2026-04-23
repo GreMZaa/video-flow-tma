@@ -82,10 +82,8 @@ export const useTelegram = () => {
     const btn = tg?.MainButton;
     if (!btn) return;
     if (isLoading) {
-      btn.showProgress(false); // false = don't hide text
       btn.disable();
     } else {
-      btn.hideProgress();
       btn.enable();
     }
   };

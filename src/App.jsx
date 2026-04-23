@@ -10,7 +10,7 @@ import { Settings, Sparkles, Layers, ChevronLeft, Plus, Edit3 } from 'lucide-rea
 import { VOICE_OPTIONS } from './services/api';
 
 function App() {
-  const { tg, showHaptic, showAlert, showConfirm } = useTelegram();
+  const { tg, showHaptic, showAlert, showConfirm, hideMainButton } = useTelegram();
   const [apiKey, setApiKey] = useState(localStorage.getItem('SILICON_FLOW_KEY') || '');
   const [actionPrompt, setActionPrompt] = useState('');
 
@@ -67,6 +67,14 @@ function App() {
     hasDrafts ? handleAutomateProject(selectedVoice) : handleExportProject();
   };
   const isMainButtonVisible = view === 'chat' && (hasDrafts || hasReadyVideos || isExporting);
+
+  // Always hide MainButton when leaving chat view
+  useEffect(() => {
+    if (view !== 'chat') {
+      hideMainButton();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
   useMainButton(mainButtonText, mainButtonAction, isMainButtonVisible, isLoading || isExporting);
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
