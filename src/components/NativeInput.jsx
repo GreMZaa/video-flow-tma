@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Wand2, Smile, Mic, Play, Download, Loader2 } from 'lucide-react';
+import { Send, Wand2, Smile, Mic, Loader2 } from 'lucide-react';
 
 /**
  * NativeInput — fixed-position input bar that always stays above the keyboard.
@@ -78,8 +78,6 @@ const NativeInput = ({
   };
 
   const canSend = value.trim().length > 0 && !isLoading;
-  const showRunButton = hasDrafts && !value.trim() && !isLoading && !isExporting;
-  const showExportButton = hasReadyVideos && !hasDrafts && !value.trim() && !isExporting;
 
   return (
     <div
@@ -99,8 +97,8 @@ const NativeInput = ({
         transition: 'bottom 0.08s linear',
       }}
     >
-      {/* Mode Indicator & Action Row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px 10px' }}>
+      {/* Mode Indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px 10px' }}>
         <div
           onClick={() => setMode(mode === 'creative' ? 'workflow' : 'creative')}
           style={{
@@ -117,44 +115,6 @@ const NativeInput = ({
           <span style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {mode === 'workflow' ? 'Сценарий' : 'Кадр'}
           </span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          {showRunButton && (
-            <motion.button
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={onRunGeneration}
-              disabled={isLoading}
-              className="ios-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 14, border: 'none',
-                background: 'var(--tg-accent)', color: 'white', fontSize: 12, fontWeight: 700,
-                boxShadow: '0 4px 12px rgba(0,122,255,0.3)',
-              }}
-            >
-              <Play size={12} fill="currentColor" /> Начать генерацию
-            </motion.button>
-          )}
-          {showExportButton && (
-            <motion.button
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={onExport}
-              disabled={isExporting}
-              className="ios-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 14, border: 'none',
-                background: '#34c759', color: 'white', fontSize: 12, fontWeight: 700,
-                boxShadow: '0 4px 12px rgba(52,199,89,0.3)',
-              }}
-            >
-              {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-              Экспорт
-            </motion.button>
-          )}
         </div>
       </div>
 

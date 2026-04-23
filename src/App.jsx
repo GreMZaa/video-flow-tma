@@ -289,8 +289,8 @@ function App() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {activeProject ? (
               <>
-                {/* paddingBottom reserves space for the fixed NativeInput bar */}
-                <div style={{ flex: 1, overflow: 'hidden', paddingBottom: inputBarHeight }}>
+                {/* ChatFlow fills all space above the fixed input bar */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingBottom: inputBarHeight }}>
                   <ChatFlow
                     generations={activeProject.generations}
                     onSelectVideo={setActiveVideo}
