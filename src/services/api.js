@@ -243,6 +243,8 @@ const extractJSON = (text) => {
 /**
  * Generates a scenario (scenes) without an API key using Pollinations Text
  */
+export const generateScenario = async (idea, style, personCount) => {
+  try {
     console.warn('Generating scenario for:', idea, 'Style:', style);
     
     // Create a dynamic fallback based on the idea
