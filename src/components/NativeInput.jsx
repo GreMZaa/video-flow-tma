@@ -146,7 +146,16 @@ const NativeInput = ({
             rows={1}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (value.trim() && !isLoading) {
+                  onSend();
+                  // Force immediate clear for UI responsiveness
+                  if (textareaRef.current) textareaRef.current.value = '';
+                }
+              }
+            }}
             placeholder={mode === 'workflow' ? 'Опишите идею для видео...' : 'Опишите кадр...'}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',

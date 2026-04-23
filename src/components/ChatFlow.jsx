@@ -14,17 +14,26 @@ const STATUS_LABELS = {
 };
 
 const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, onRunGeneration, onClearDrafts }) => {
-  const scrollRef = useRef(null);
+  const bottomRef = useRef(null);
   const { showHaptic } = useTelegram();
 
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const scrollToBottom = () => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     scrollToBottom();
-    const t = setTimeout(scrollToBottom, 150);
+    const t = setTimeout(scrollToBottom, 300);
     return () => clearTimeout(t);
   }, [generations.length, generations[generations.length - 1]?.status]);
+
+  // Handle window/container resize for better scrolling
+  useEffect(() => {
+    const observer = new ResizeObserver(() => scrollToBottom());
+    const container = document.querySelector('.chat-bg-premium');
+    if (container) observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   if (generations.length === 0) {
     return (
@@ -52,7 +61,6 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, on
 
   return (
     <div
-      ref={scrollRef}
       style={{
         flex: 1,
         overflowY: 'auto',
@@ -60,9 +68,12 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, on
         flexDirection: 'column',
         gap: 4,
         padding: '12px 0',
+        position: 'relative',
       }}
-      className="custom-scrollbar chat-bg-pattern"
+      className="custom-scrollbar chat-bg-premium"
     >
+      {/* Animated Mesh Gradient Background */}
+      <div className="mesh-gradient" />
       {/* Date divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 20px 8px' }}>
         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)' }} />
@@ -288,30 +299,36 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, on
         ))}
       </AnimatePresence>
       
-      {/* Scenario confirmation area */}
-      {generations.some(g => g.status === 'draft') && (
+      {/* Scenario confirmation area — only show if NOT using Telegram MainButton or as a backup */}
+      {generations.some(g => g.status === 'draft') && !useTelegram().tg.MainButton.isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
           style={{
-            padding: '16px 20px',
+            margin: '20px',
+            padding: '20px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
-            background: 'rgba(0,122,255,0.03)',
-            borderTop: '0.5px solid rgba(0,122,255,0.1)',
-            borderBottom: '0.5px solid rgba(0,122,255,0.1)',
-            marginTop: 10,
-            marginBottom: 20
+            gap: 16,
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: 24,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ padding: 6, borderRadius: 8, background: 'rgba(0,122,255,0.1)' }}>
-              <MessageSquare size={16} color="var(--tg-accent)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ 
+              width: 40, height: 40, borderRadius: 12, 
+              background: 'linear-gradient(135deg, var(--tg-accent) 0%, #a5b4fc 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(36,129,204,0.3)'
+            }}>
+              <Sparkles size={20} color="white" />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>Сценарий готов</div>
-              <div style={{ fontSize: 12, color: 'var(--tg-hint)' }}>Проверьте кадры выше и запустите генерацию</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'white', letterSpacing: -0.3 }}>Сценарий готов</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Проверьте кадры и начните магию</div>
             </div>
           </div>
           
@@ -360,10 +377,37 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, on
         </motion.div>
       )}
 
-      {/* Bottom padding */}
-      <div style={{ height: 8 }} />
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Scroll Anchor */}
+      <div ref={bottomRef} style={{ height: 1, marginTop: -1 }} />
+
+      {/* Bottom padding */}
+      <div style={{ height: 80 }} />
+
+      <style>{`
+        .chat-bg-premium {
+          background: #090e14;
+          position: relative;
+        }
+        .mesh-gradient {
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          opacity: 0.7;
+          background: 
+            radial-gradient(at 0% 0%, hsla(220,100%,20%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(270,100%,15%,1) 0, transparent 50%),
+            radial-gradient(at 100% 100%, hsla(210,100%,15%,1) 0, transparent 50%),
+            radial-gradient(at 0% 100%, hsla(250,100%,20%,1) 0, transparent 50%);
+          filter: blur(80px);
+          animation: mesh-float 25s ease-in-out infinite alternate;
+        }
+        @keyframes mesh-float {
+          0% { transform: scale(1) translate(0, 0); }
+          100% { transform: scale(1.1) translate(20px, 20px); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };

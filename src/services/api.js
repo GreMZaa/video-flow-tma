@@ -27,9 +27,14 @@ Format:
 
 // Available System Voices (will be populated dynamically if possible, 
 // but we define labels for UI consistency)
+// Available System Voices for SiliconFlow (CosyVoice)
 export const VOICE_OPTIONS = [
-  { id: 'neural-male', name: 'Мужской (Нейро)', lang: 'ru' },
-  { id: 'neural-female', name: 'Женский (Нейро)', lang: 'ru' },
+  { id: 'FunAudioLLM/CosyVoice2-0.5B:alex', name: 'Алекс (Мужской)', lang: 'ru' },
+  { id: 'FunAudioLLM/CosyVoice2-0.5B:benjamin', name: 'Бенджамин (Мужской)', lang: 'ru' },
+  { id: 'FunAudioLLM/CosyVoice2-0.5B:anna', name: 'Анна (Женский)', lang: 'ru' },
+  { id: 'FunAudioLLM/CosyVoice2-0.5B:bella', name: 'Белла (Женский)', lang: 'ru' },
+  { id: 'neural-male', name: 'Системный Мужской', lang: 'ru' },
+  { id: 'neural-female', name: 'Системный Женский', lang: 'ru' },
 ];
 
 /**
@@ -75,18 +80,81 @@ export const enhancePrompt = async (prompt) => {
 };
 
 /**
- * Generates an image URL from Pollinations.ai
+ * Generates an image URL. Use SiliconFlow (Flux) if apiKey is present, 
+ * otherwise fallback to Pollinations.
  */
-export const generateImage = (prompt) => {
+export const generateImage = async (prompt, apiKey = null) => {
+  if (apiKey && apiKey.startsWith('sk-')) {
+    try {
+      console.log('Generating image via SiliconFlow (Flux.1)...');
+      const response = await fetch('https://api.siliconflow.cn/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'black-forest-labs/FLUX.1-schnell',
+          prompt: prompt,
+          image_size: '1024x576',
+          batch_size: 1,
+          num_inference_steps: 4
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const url = data.images?.[0]?.url || data.data?.[0]?.url;
+        if (url) return url;
+      }
+    } catch (e) {
+      console.warn('SiliconFlow Image Gen failed, falling back to Pollinations:', e);
+    }
+  }
+
   const encodedPrompt = encodeURIComponent(prompt);
   // Using 1024x576 for cinematic aspect ratio
   return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&seed=${Math.floor(Math.random() * 10000)}&model=flux&nologo=true`;
 };
 
 /**
- * Generates a TTS audio using Web Speech API (Always Free & Natural)
+ * Generates a TTS audio. Use SiliconFlow (CosyVoice) if apiKey is present,
+ * otherwise fallback to Web Speech API.
  */
-export const generateTTS = (text, voiceType = 'neural-male') => {
+export const generateTTS = async (text, voiceType = 'neural-male', apiKey = null) => {
+  if (apiKey && apiKey.startsWith('sk-') && voiceType.includes(':')) {
+    try {
+      console.log('Generating TTS via SiliconFlow (CosyVoice)...');
+      const response = await fetch('https://api.siliconflow.cn/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: voiceType.split(':')[0], // e.g. FunAudioLLM/CosyVoice2-0.5B
+          input: text,
+          voice: voiceType,
+          response_format: 'mp3'
+        })
+      });
+
+      if (response.ok) {
+        // SiliconFlow returns a stream or a URL? Usually it's a binary stream for /audio/speech
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        return new Promise((resolve, reject) => {
+          audio.onended = () => resolve();
+          audio.onerror = (e) => reject(e);
+          audio.play().catch(reject);
+        });
+      }
+    } catch (e) {
+      console.warn('SiliconFlow TTS failed, falling back to Web Speech API:', e);
+    }
+  }
+
   return new Promise((resolve, reject) => {
     if (!window.speechSynthesis) {
       reject(new Error('TTS not supported'));
@@ -96,7 +164,7 @@ export const generateTTS = (text, voiceType = 'neural-male') => {
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
     
-    // Find a good Russian voice (prioritize Neural/Google/Microsoft)
+    // Find a good Russian voice
     const ruVoices = voices.filter(v => v.lang.startsWith('ru'));
     let selectedVoice = ruVoices.find(v => 
       v.name.toLowerCase().includes('google') || 

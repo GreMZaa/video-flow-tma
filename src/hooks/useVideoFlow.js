@@ -84,7 +84,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
 
         // Step 1: Generating Image
         setStatus(item.id, 'generating_image');
-        const imageUrl = generateImage(`${item.style}, ${item.prompt}`);
+        const imageUrl = await generateImage(`${item.style}, ${item.prompt}`, apiKey);
         
         // Step 2: Animating (passing apiKey)
         setStatus(item.id, 'animating', { imageUrl });
@@ -96,7 +96,7 @@ export const useVideoFlow = (activeProject, updateActiveProject, showHaptic, sho
         setStatus(item.id, 'voiceover', { videoUrl: url, isMotion });
         if (item.voiceText) {
           try {
-            await generateTTS(item.voiceText, selectedVoice);
+            await generateTTS(item.voiceText, selectedVoice, apiKey);
           } catch (ttsErr) {
             console.warn('TTS Failed but continuing...', ttsErr);
           }

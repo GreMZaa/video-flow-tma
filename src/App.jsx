@@ -61,7 +61,7 @@ function App() {
   const hasReadyVideos = activeProject?.generations?.some(g => g.status === 'ready');
   const mainButtonText = isExporting
     ? `Экспорт ${exportProgress}%`
-    : hasDrafts ? 'Запустить генерацию' : 'Экспорт видео';
+    : hasDrafts ? 'Начать генерацию' : 'Экспорт видео';
   const mainButtonAction = () => {
     if (isExporting) return;
     hasDrafts ? handleAutomateProject(selectedVoice) : handleExportProject();
@@ -88,6 +88,9 @@ function App() {
     // If failed, restore the prompt so user doesn't lose their text
     if (!success) {
       setActionPrompt(prompt);
+    } else {
+      // Force clear even if state update is slow
+      setActionPrompt('');
     }
   };
 
@@ -401,20 +404,51 @@ function App() {
       {/* ── Export Progress ────────────────────────────────────────────────────── */}
       {isExporting && (
         <div style={{
-          position: 'fixed', left: 16, right: 16, top: 100, zIndex: 60,
-          background: 'var(--tg-accent)', borderRadius: 20, padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 8px 32px rgba(0,122,255,0.4)'
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24
         }}>
-          <Layers className="text-white animate-pulse" size={22} />
-          <div style={{ flex: 1 }}>
-            <div style={{ color: 'white', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-              Сборка видео
+          <div className="vibrant-glass-modal" style={{
+            width: '100%', maxWidth: 320,
+            borderRadius: 28, padding: 32,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24,
+            position: 'relative', overflow: 'hidden'
+          }}>
+            <div className="vibrant-mesh" />
+            
+            <div style={{
+              width: 72, height: 72, borderRadius: 20,
+              background: 'linear-gradient(135deg, var(--tg-accent) 0%, #a5b4fc 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(36,129,204,0.4)',
+            }}>
+              <Layers className="text-white animate-spin" size={36} style={{ animationDuration: '3s' }} />
             </div>
-            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }}>
-              <div style={{ height: '100%', background: 'white', width: `${exportProgress}%`, borderRadius: 2, transition: 'width 0.3s' }} />
+            
+            <div style={{ textAlign: 'center' }}>
+              <div className="premium-gradient-text" style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, letterSpacing: -0.5 }}>
+                Сборка видео
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1.5 }}>
+                Мы соединяем кадры и накладываем звук. Пожалуйста, подождите.
+              </div>
+            </div>
+
+            <div style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Прогресс</span>
+                <span style={{ fontSize: 14, color: 'white', fontWeight: 800 }}>{exportProgress}%</span>
+              </div>
+              <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${exportProgress}%` }}
+                  style={{ height: '100%', background: 'linear-gradient(90deg, var(--tg-accent), #a5b4fc)', borderRadius: 4 }} 
+                />
+              </div>
             </div>
           </div>
-          <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>{exportProgress}%</span>
         </div>
       )}
     </div>

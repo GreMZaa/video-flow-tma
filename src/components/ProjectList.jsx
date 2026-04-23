@@ -91,12 +91,6 @@ const ProjectList = ({
           >
             <Plus size={24} />
           </button>
-          <button 
-            onClick={() => setIsEditMode(!isEditMode)}
-            style={{ background: 'none', border: 'none', color: 'var(--tg-accent)', padding: 0, cursor: 'pointer' }}
-          >
-            <Edit3 size={22} />
-          </button>
         </div>
       </div>
 
