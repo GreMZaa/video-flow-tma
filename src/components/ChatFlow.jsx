@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Trash2, CheckCircle2, Loader2, MessageSquare, Wand2 } from 'lucide-react';
+import { Play, Trash2, CheckCircle2, Loader2, MessageSquare, Wand2, Sparkles } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
 
 const STATUS_LABELS = {
@@ -300,7 +300,7 @@ const ChatFlow = ({ generations, onSelectVideo, onDeleteVideo, onUpdateVideo, on
       </AnimatePresence>
       
       {/* Scenario confirmation area — only show if NOT using Telegram MainButton or as a backup */}
-      {generations.some(g => g.status === 'draft') && !useTelegram().tg.MainButton.isVisible && (
+      {generations.some(g => g.status === 'draft') && !useTelegram().tg?.MainButton?.isVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
