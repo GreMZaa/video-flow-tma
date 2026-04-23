@@ -383,14 +383,11 @@ const ProjectList = ({
         paddingBottom: 'env(safe-area-inset-bottom, 8px)',
         zIndex: 100
       }}>
-        <div 
+        <div
           onClick={onShowContacts}
           className="ios-btn"
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: 72 }}
-        >
-          <User size={28} strokeWidth={1.5} style={{ opacity: 0.6 }} />
-          <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.6 }}>Контакты</span>
-        </div>
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: 72, opacity: 0 }}
+        />
         <div 
           onClick={() => !isEditMode && onSelectProject(activeProjectId)}
           className="ios-btn"
